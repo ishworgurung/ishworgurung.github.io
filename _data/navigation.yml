@@ -2,8 +2,10 @@
 main:
   - title: "About"
     url: /about/
-  #- title: "Quick-Start Guide"
-  #  url: https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/
+  - title: "Home"
+    url: /
+  - title: "Family blog"
+    url: http://ishworgurung.com
   # - title: "Sample Posts"
   #   url: /year-archive/
   # - title: "Sample Collections"
