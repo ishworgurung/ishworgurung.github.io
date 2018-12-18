@@ -9,7 +9,9 @@ your Microsoft rep to get it on Linux subsystem! :)
 
 * To keep simple things simple, i'll begin with the format of `tcpdump`
 
-    `$ tcpdump [options] [expression]`
+    ```
+    $ tcpdump [options] [expression]
+    ```
 
     Options are things like e.g. `-i any -nn -A -v`.
     Expressions are things like e.g. `dst port 9999` and should be single quoted e.g. `'host www.example.com'`.
