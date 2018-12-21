@@ -1,8 +1,8 @@
 # TCP Packets Debugging on the wire
 
 One of the really handy tool I use to diagnose/measure network path and latencies is `tcptraceroute`. 
-The benefit of using it is that unlike `traceroute` which uses `UDP` packets by default, `tcptraceroute` only
-focuses on `TCP` layer so it naturally uses `TCP`. With only single flag set `SYN`, if a packet (with a particular IP ID)
+The benefit of using it is that unlike `traceroute` which uses `UDP` packets by default (see TL;DR please), 
+`tcptraceroute` only focuses on `TCP` layer so it naturally uses `TCP`. With only single flag set `SYN`, if a packet (with a particular IP ID)
 sent through `tcptraceroute` gets a reply for that packet which has `SYN/ACK` flag set from the destination host, then it deems
 the port on the destination host to be open; The technique *was probably* first pioneered by Fyodor in his `nmap` half-open 
 TCP scan technique. From nmap project's documentation:
