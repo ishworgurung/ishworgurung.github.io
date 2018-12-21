@@ -70,7 +70,7 @@ But you might be asking why on earth is `tcptraceroute` useful compared to the t
 over it are:
   * By default `traceroute` uses `UDP` packets which are nearly always filtered by routers that sit in-between source
     and destination hosts.
-  * Using `TCP` tracing is un-intuitive as it is hard to figure out whether the destination port is in `open` or `filtered` 
+  * Using `TCP` tracing is un-intuitive as it does not clearly state whether the destination port is in `open` or `filtered` 
     state (although, I love the fact that its `TCP` scans are more faster yielding than `tcptraceroute`)
   * Using `ICMP` tracing, a lot of routers filter `ICMP` echo packets leading to unreliable measurements.    
 
