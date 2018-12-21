@@ -1,11 +1,3 @@
-- [Hashicorp Nomad; the missing distributed job scheduler](#hashicorp-nomad-the-missing-distributed-job-scheduler)
-  - [What's Nomad](#whats-nomad)
-  - [Jobs](#jobs)
-    - [Job Example](#job-example)
-    - [Job Constraint](#job-constraint)
-  - [Scheduler Types](#scheduler-types)
-  - [Nomad ecosystem](#nomad-ecosystem)
-
 **Disclaimer: I do not work for Hashicorp**
 
 ## Hashicorp Nomad; the missing distributed job scheduler
