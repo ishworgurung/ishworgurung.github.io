@@ -65,8 +65,9 @@ The final `TCP` connection teardown is then initiated (flag `S` and `R` mean `SY
     	
 
 ## Hmm..
-But you might be asking why on earth is `tcptraceroute` useful compared to the traditional `traceroute`? Because, `traceroute`
-even supports tracing using `UDP` and `ICMP` on top of `TCP`. The primary reasons are:
+But you might be asking why on earth is `tcptraceroute` useful compared to the traditional `traceroute`? Moreover, 
+`traceroute` even supports tracing using `UDP` and `ICMP` on top of `TCP`? The reasons I prefer `tcptraceroute`
+over it are:
   * By default `traceroute` uses `UDP` packets which are nearly always filtered by routers that sit in-between source
     and destination hosts.
   * Using `TCP` tracing is un-intuitive as it is hard to figure out whether the destination port is in `open` or `filtered` 
