@@ -1,13 +1,10 @@
 ## WTF links #1
 
-Besides the title of the link, I will be linking interesting links interesting articles
-and posts from the internet once or twice a week on pages that have the title *WTF links*.
+Apart from the _lolsy_ title of the post, I will be posting series of interesting articles and posts from the internet once or twice a week on dated pages that have the title *WTF links*.
 
-The idea is to share interesting literature that I could explore in the time afforded to
-me. If you find anything that you feel strongly about, please feel free to reach out to
-directly at me@ishworgurung.com.
+The idea is to share interesting literature that I could explore in the time afforded to me. If you find anything that you feel strongly about, please feel free to reach out to directly at me@ishworgurung.com.
 
-So, here is the first lot
+So, without further delay here is the first lot
 
 [A New Golden Age for Computer Architecture](https://cacm.acm.org/magazines/2019/2/234352-a-new-golden-age-for-computer-architecture/fulltext)
 
