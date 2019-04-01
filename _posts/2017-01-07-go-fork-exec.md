@@ -1,7 +1,7 @@
 ## Go self fork/exec in Linux/MacOS and possibly BSD
 
 Go's [`os`](https://golang.org/pkg/os/) package exposes a convenient way to fork and exec.
-Since, I found this trick handy, I thought I might share it. For people with UNIX beards, *tldr;* NIH.
+Since, I found this trick handy, I thought I might share it. 
 What I am trying to achieve is a way to re-execute the same binary image so that the task re-opens configuration files,
 re-establishes network connections - whatever it be - when a suitable POSIX signal is delivered to it.
 
@@ -40,5 +40,7 @@ for {
 }
 ```
 
-Since this is a post about Go, we'll keep Bash away but using [`trap`](http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_12_02.html)
-in Bash is yet another way to achieve the same thing. UNIX hmm.. let me phrase it as **goat many ways to the skin**.
+Since this is a post about Go, we'll keep Bash away. Using [`trap`](http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_12_02.html)
+in Bash is yet another way to achieve the same thing. At least two ways to achieve the same thing ;)
+
+_I agree this post is intentionally vague because I did not want to flaff around with other logic. I will try to expand on it in the future._
