@@ -42,6 +42,8 @@ vlan8: flags=8843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 ```
 Watch out for `inet`, `parent`, `vnetid` and `broadcast` in the above listing.
 
+**NB:** Please note that the interfaces that sit between the packet path should all have equal MTUs (e.g. in the above listing, the MTU is 1500). Any switches that sit in between should also support `802.1q` protocol so the VLAN'ed packets can be tagged accordingly. Thanks to _martian67_ for this.
+
 ## PSA (Public Service Announcement)
 
 If you run a network with IoT (Internet Of shit Things), consider putting them in a filtered VLAN that can only communicate within the LAN and not to the internet. This is because a lot of these IoT (Internet Of shit Things) *call home* and could potentially ex-filtrate private informations :boom:
