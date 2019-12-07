@@ -1,4 +1,8 @@
-## Two minute guide to set up VLAN on OpenBSD
+## Three minute guide to set up VLAN on OpenBSD
+
+If you live under the rock, go check out [OpenBSD](https://www.openbsd.org). It's pretty nice. I have been running OpenBSD on my servers for about five years and I absolutely love it. Simplicity, robust, secure and minimal - you name it; It's all there. If you got an old intel 386 or an RaspberryPI, it will be sufficient to run the humble OpenBSD.
+
+Now onto how I VLAN my OpenBSD guest.
 
 The `vio0` NIC is based on a QEMU'ed guest on the usual [VIO(4)](https://man.openbsd.org/vio) driver.
 
@@ -36,8 +40,8 @@ vlan8: flags=8843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 	status: active
 	inet 10.2.1.61 netmask 0xffffff00 broadcast 10.2.1.255
 ```
-Watch for `inet`, `parent`, `vnetid` and `broadcast` in the above listing.
+Watch out for `inet`, `parent`, `vnetid` and `broadcast` in the above listing.
 
 ## PSA (Public Service Announcement)
 
-If you run a network with IoT (of shit things), consider putting them in a filtered VLAN that can only communicate within the LAN and not to the internet. This is because a lot of these IoT (of shit things) *call home* and could ex-filtrate private informations :micdrop:
+If you run a network with IoT (Internet Of shit Things), consider putting them in a filtered VLAN that can only communicate within the LAN and not to the internet. This is because a lot of these IoT (Internet Of shit Things) *call home* and could potentially ex-filtrate private informations :boom:
