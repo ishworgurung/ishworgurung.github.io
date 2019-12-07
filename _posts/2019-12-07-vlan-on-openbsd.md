@@ -36,6 +36,7 @@ vlan8: flags=8843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST> mtu 1500
 	status: active
 	inet 10.2.1.61 netmask 0xffffff00 broadcast 10.2.1.255
 ```
+Watch for `inet`, `parent`, `vnetid` and `broadcast` in the above listing.
 
 ## PSA (Public Service Announcement)
 
