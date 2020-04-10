@@ -1,4 +1,4 @@
-## WTF links #3
+## Interesting links #3
 
 [Linux Extended BPF (eBPF) Tracing Tools](http://www.brendangregg.com/ebpf.html)
 

@@ -1,4 +1,4 @@
-## WTF links #2
+## Interesting links #2
 
 [Skylake bug: a detective story](https://tech.ahrefs.com/skylake-bug-a-detective-story-ab1ad2beddcd)
 

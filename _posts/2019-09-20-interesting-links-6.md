@@ -1,4 +1,4 @@
-## WTF links #6
+## Interesting links #6
 
 [Pure Bash Bible](https://github.com/dylanaraps/pure-bash-bible)
 

@@ -1,6 +1,6 @@
-## WTF links #1
+## Interesting links #1
 
-Apart from the _lolsy_ title of the post, I will be posting series of interesting articles and posts from the internet once or twice a week on dated pages that have the title *WTF links*.
+I will be posting series of interesting articles and posts from the internet once or twice a week on dated pages that have the title *Interesting links*.
 
 The idea is to share interesting literature that I could explore in the time afforded to me. If you find anything that you feel strongly about, please feel free to reach out to directly at me@ishworgurung.com.
 

@@ -122,6 +122,11 @@ The `tcpdump` expressions can be viewed as a BPF instructions using the `-d` opt
   
 Each line is a BPF instruction that can be executed within a BPF VM.
 
+From [BPF Performance Tools: Linux System and Application Observability](http://www.brendangregg.com/bpf-performance-tools-book.html):
+> BPF works in an interesting way: A filter expression is defined by the end user using an instruction set for a BPF virtual machine (sometimes called the BPF bytecode) and then passed to the kernel for execution by an interpreter. This allows filtering to occur in the kernel level without costly copies of each packet going to the user-level processes, improving the performance of packet filtering, as used by tcpdump(8). It also provides safety, as filters from user space can be verified as being safe before execution. Given that early packet filtering had to occur in kernel space, safety was a hard requirement.
+![](02fig02.jpg)
+
+
 ### More filter expressions :)
 
 To trace all udp packets in a destination port range 50000-65535 (inclusive)

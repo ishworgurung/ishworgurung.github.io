@@ -1,4 +1,4 @@
-## WTF links #7
+## Interesting links #7
 
 # TL;DR
 
@@ -12,4 +12,4 @@ The reason fault injection becomes a useful tool to have in the arsenal is becau
 
 The alternative to `strace(1)` is a little costly - bcc/ebpf that need to be instrumented at compile-time (but bcc/ebpf is extremely powerful!) or *perf* (extremely heavyweight).
 
-Until next WTF Links, keep testing injecting those faults in your code! :-)
+Until next Interesting links, keep testing injecting those faults in your code! :-)

@@ -26,7 +26,7 @@ disk space and network speed. It then later uses these fingerprinted data amongs
 on the worker nodes.
 
 Here are few of the things that Nomad is really good at. Nomad aims to cater for a subset of what Kubernetes provides - the deployment scheduler with an excellent
-bin-packing of workload on the cluster; But, where it differentiates itself from other schedulers in the market is its fucktillion number of support for different 
+bin-packing of workload on the cluster; But, where it differentiates itself from other schedulers in the market is its large number of support for different 
 `driver` backend. It can run not only `Docker` containers but anything from single `Fork/Raw Exec` binaries, `Java` applications, `QeMU` VM images, `rkt` containers,
 `LXC` containers and more (they aim to make it extensible for any driver backend). The driver backend `LXC` is still experimental as of version `0.8` but you can 
 clearly see the number of available options. Nomad gives users the opportunity to deploy in many different format and runtime.
