@@ -1,6 +1,4 @@
-## DNSSEC for the win
-
-### Fast Intro
+## Fast Intro
 
 DNSSEC uses digital signature to verify the authenticity and integrity of DNS records. In essence, it sets up
 a non-spoofable chain of trust right from the root zone down to the authoritative nameserver and further to modern caching
