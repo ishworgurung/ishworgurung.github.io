@@ -15,7 +15,7 @@ It may surprise you to find a number of _household_ domains do not use DNSSEC.
 
 In general these are some reasons to use DNSSEC:
 - DNS Protocol Attacks
-- BGP Hijacking Attack
+- BGP Hijacking Attack<sup>1</sup>
 - DNS Hijacking (Credential Theft)
 - Domain Theft
 - Cache Poisoning
@@ -63,3 +63,5 @@ And I agree. DNSSEC is a good thing - let's do more of it; not less.
   
 I leave you with Dr. Casey Deccio's [Hello Summer Break](https://casey.byu.edu/media/hello_summer_break.mp3) :sound:.
 Dr. Casey is the original author of DNSViz :beers:
+
+<sup>1</sup>[Is BGP Safe Yet](https://isbgpsafeyet.com/).
