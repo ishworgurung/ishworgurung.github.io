@@ -111,6 +111,8 @@ $ socat -v                                                                      
     unix-client:/var/run/uds.sock
 ```
 
+---
+
 <sup>1</sup> Everything in this story is fictional and has been trivialised for the purpose of simplicity. I am a big
 fan of KISS philosophy although I haven't had the time to listen to the band KISS at all :smile:.
 
