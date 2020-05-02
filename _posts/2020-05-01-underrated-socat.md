@@ -6,7 +6,7 @@ _multipurpose relay_ software (socket cat). People lovingly synonymize it as _li
 across `socat` when I was working as a pentester back in the day (I have worn many hats in the past) whilst 
 trying to work my way through protocol debugging.
   
-TL;DR? Refer to the [commands](##socat the swiss-army knife) instead.
+TL;DR? Refer to the [commands](#socat the swiss-army knife) instead.
 
 ## The socat story
 
