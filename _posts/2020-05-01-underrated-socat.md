@@ -111,6 +111,16 @@ $ socat -v                                                                      
     unix-client:/var/run/uds.sock
 ```
 
+### Capture TLS packets to /dev/stdout for quick debugging
+Please avoid setting `verify=0` on production if you can.
+```bash
+$ socat -v                                                                                       				\
+    openssl-listen:443,reuseaddr,pf=ip4,fork,key=key.pem,cafile=cert.pem,cert=cert.pem,verify=0,commonname=server.domain.name	\
+    file:/dev/stdout
+```
+
+Feel free to drop me a comment if anything. Until next time adios!
+
 ---
 
 <sup>1</sup> Everything in this story is fictional and has been trivialised for the purpose of simplicity. I am a big
