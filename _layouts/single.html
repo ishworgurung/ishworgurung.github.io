@@ -48,6 +48,7 @@ layout: default
         {% endif %}
       </footer>
 
+      {% if page.content_support %}{% include content_support.html %}{% endif %}
       {% if page.share %}{% include social-share.html %}{% endif %}
 
       {% include post_pagination.html %}
