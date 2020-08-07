@@ -7,10 +7,10 @@
 
 # Site Settings
 locale                   : "en"
-title                    : "Tales, thoughts and random blurbs"
+title                    : "Tales, thoughts and random blurbs on software and systems"
 title_separator          : "-"
 name                     : "Ishwor Gurung"
-description              : "Tales from the trenches, thoughts and random blurbs from yours sincerely"
+description              : "Tales from the trenches, thoughts and random blurbs on software and systems from yours sincerely"
 url                      : "https://ishworgurung.github.io"# the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : # the subpath of your site, e.g. "/blog"
 repository               : "ishworgurung/ishworgurung.github.io" # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
