@@ -244,3 +244,4 @@ defaults:
       comments: true # true
       share: true
       related: true
+      content_support: true
