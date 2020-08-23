@@ -14,7 +14,7 @@ To capture a kernel panic message, run the virtual machine like so:
 $ qemu-system-x86_64 -smp 2,sockets=2,cores=1,threads=1 -m 4096 -nographic -serial mon:stdio ubuntu18.04-1.qcow2
 ```
 
-You will then be greeted with the usual boot messages.
+You will be greeted with the usual boot messages.
 
 Log in and trigger a kernel panic (either via sysrq or via the faulty kernel module).
 
@@ -190,7 +190,7 @@ If you are into Rust and Linux kernel, I definitely recommend checking out [linu
 
 ### Auto-reboot upon Linux kernel panic
 
-If you get into kernel panic often (while developing/debugging kernel module or what not) or want to ensure system uptime in the face of Kernel instabilities, you could consider enabling `softdog` in-tree linux kernel module.
+If you often get kernel panic (while developing/debugging kernel module or what not) or want to ensure system uptime in the face of Kernel instabilities, you could consider enabling `softdog` in-tree linux kernel module.
 This LKM runs a watchdog timer with a periodic heartbeat. Upon heartbeat failure, the timer associated with the heartbeat expires due to a kernel panic upon which, the system is rebooted. 
 For this to work, a kernel parameter needs to be added to GRUB - `GRUB_CMDLINE_LINUX="panic=60"` in `/etc/default/grub` and then `update-grub` (for Ubuntu-like distro) needs to be run; Then the system needs to be rebooted.
 
