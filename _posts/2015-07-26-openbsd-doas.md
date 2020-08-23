@@ -12,6 +12,14 @@ By the way *happy sysadmin day to all the awesome system administrators who figh
 Starting OpenBSD 5.8, `doas` comes pre-installed as part of base set. To use it is super simple; 
 Create a configuration file `/etc/doas.conf` with the following configuration (depending on your needs):
 
+In newer releases, things have slightly changed. I don't exactly recall which release added `setenv` but that seems to be correct
+way to do this in OpenBSD 6.7. I had it in my backlog to update this post so here is an example for super relaxed permission:
+
+    permit nopass keepenv setenv { ENV PS1=$DOAS_PS1 SSH_AUTH_SOCK } :wheel
+
+There's some more example at https://www.vultr.com/docs/introduction-to-doas-on-openbsd
+
+
 ### Super relaxed permission 
 
     permit nopass keepenv { ENV PS1 SSH_AUTH_SOCK } :wheel
