@@ -1,5 +1,5 @@
 
-## Capturing Linux kernel panic message on QeMU
+## Capturing Linux kernel panic message on QEMU
 
 In this small post, I will cover the following:
 - Capture Linux kernel panic message
