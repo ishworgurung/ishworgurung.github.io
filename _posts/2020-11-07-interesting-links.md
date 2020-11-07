@@ -10,7 +10,8 @@ Make sure you have the latest Linux kernel (something like `v5.9.0+`) before ope
 
 ---
 
-[Intel Hyperscan](http://intel.github.io/hyperscan/dev-reference/) - Got 40GigE *stream* data to do DPI on x86? No problem.
+Got 40GigE *stream* data to do DPI on x86? Do you have performance issue with the pattern matching library currently
+in use? No problem. Enter [Intel Hyperscan](http://intel.github.io/hyperscan/dev-reference/).
 
 ---
 
