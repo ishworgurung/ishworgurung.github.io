@@ -1,6 +1,34 @@
 <html>
-    <head/>
-    <body>
-    <img src="https://pub.gctl.io/assets/images/kernelpanic.jpg" alt="kernel panic" height="640" width="640"/>
-    </body>
+<head><title>page not found: 0x0000000000000194</title></head>
+<body><pre>
+[  218.495103] Kernel panic - not syncing: page not found: 0x0000000000000194
+[  218.497092] CPU: 0 PID: 1176 Comm: insmod Tainted: G           OE     5.9.0-050900-generic #202010112230
+[  218.497527] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.13.0-1ubuntu1 04/01/2014
+[  218.497906] Call Trace:
+[  218.497906]  show_stack+0x52/0x58
+[  218.497906]  dump_stack+0x70/0x8d
+[  218.497906]  panic+0x101/0x2e3
+[  218.497906]  ? do_init_module+0x28/0x270
+[  218.497906]  ? 0xffffffffc0963000
+[  218.497906]  init_module+0x15/0x1000 [kpanic]
+[  218.497906]  do_one_initcall+0x4a/0x1fa
+[  218.497906]  ? kmem_cache_alloc_trace+0xf0/0x210
+[  218.497906]  ? do_init_module+0x28/0x270
+[  218.497906]  do_init_module+0x62/0x270
+[  218.497906]  load_module+0x42b/0x6e0
+[  218.497906]  __do_sys_finit_module+0xbe/0x120
+[  218.497906]  __x64_sys_finit_module+0x1a/0x20
+[  218.497906]  do_syscall_64+0x38/0x90
+[  218.497906]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[  218.497906] RIP: 0033:0x7efe1b51889d
+[  218.497906] Code: 00 c3 66 2e 0f 1f 84 00 00 00 00 00 90 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d c3 f5 0c 00 f7 d8 64 89 01 8
+[  218.497906] RSP: 002b:00007ffc9307b858 EFLAGS: 00000246 ORIG_RAX: 0000000000000139
+[  218.497906] RAX: ffffffffffffffda RBX: 00005561c2e4c780 RCX: 00007efe1b51889d
+[  218.497906] RDX: 0000000000000000 RSI: 00005561c1f29358 RDI: 0000000000000003
+[  218.497906] RBP: 0000000000000000 R08: 0000000000000000 R09: 00007efe1b5ec260
+[  218.497906] R10: 0000000000000003 R11: 0000000000000246 R12: 00005561c1f29358
+[  218.497906] R13: 0000000000000000 R14: 00005561c2e4c760 R15: 0000000000000000
+[  218.497906] Kernel Offset: 0x32e00000 from 0xffffffff81000000 (relocation range: 0xffffffff80000000-0xffffffffbfffffff)
+[  218.497906] ---[ end Kernel panic - not syncing: page not found: 0x0000000000000194 ]---
+</pre></body>
 </html>
