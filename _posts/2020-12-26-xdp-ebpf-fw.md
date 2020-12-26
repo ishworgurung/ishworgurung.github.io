@@ -7,13 +7,13 @@ The two (XDP and eBPF) have grown quite rapidly in the 5.x release of the Linux 
 you would not want to use it for your low-latency, high-performance use case.
 
 In this post, I will be demonstrating a sample XDP code that performs IP-layer firewall function traditionally done by
-Netfilter/IPtables (thanks for all the fish Rusty Russell!) but ran as a generic XDP program by the eBPF VM in the
-kernel. The walk-through was thoroughly tested on Ubuntu 20.10 with LLVM version 11.0.0 on QEMU/virtio. LLVM is required
+Netfilter/IPtables (thanks for all the fish Rusty Russell!) but ran as a offloaded XDP program by the eBPF VM in the
+Linux kernel. The walk-through was thoroughly tested on Ubuntu 20.10 with LLVM version 11.0.0 on QEMU/virtio. LLVM is required
 today because it can produce eBPF targets.
 
 According to XDP developers, on a benchmark they conducted, XDP far out-performed traditional kernel network stack on
-Linux on all fronts - _tx_, _rx_ and _forward_ (in the order of 12-25x!) when used with a NIC that that supports XDP
-natively such as the ones from Intel/Mellanox/Netronome etc.
+Linux on all fronts - _tx_, _rx_ and _forward_ (in the order of 12-25x!) when used with a NIC that that offloads XDP
+such as the ones from Intel/Mellanox/Netronome (mlx/ixgbe/nfp etc).
 
 ## Dependencies Installation and Rust setup
 
@@ -183,7 +183,7 @@ $ cargo bpf load -i eth0 target/bpf/programs/fw/fw.elf
 
 :boom:
 
-## Interesting resources
+## External resources
 
 - [Rust redbpf crate doc](https://lib.rs/crates/redbpf)
 - [redbpf intro](https://ingraind.org/api/cargo_bpf/)
@@ -193,4 +193,4 @@ $ cargo bpf load -i eth0 target/bpf/programs/fw/fw.elf
 - [Awesome eBPF - keep this under the pillow](https://github.com/zoidbergwill/awesome-ebpf)
 - [xdp-newbies mailing list](mailto:majordomo@vger.kernel.org?subject=subscribe xdp-newbies&body=subscribe xdp-newbies)
 - [Netronome smart NIC XDP](https://www.youtube.com/watch?v=kFC8Bfk3FuI)
- 
+- [XDP in RHEL (C implementation and guides)](https://developers.redhat.com/blog/2018/12/06/achieving-high-performance-low-latency-networking-with-xdp-part-1/)
