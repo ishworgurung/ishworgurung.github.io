@@ -6,16 +6,16 @@
    Typography
    ========================================================================== */
 
-$doc-font-size              : 16 !default;
+$doc-font-size              : 14 !default;
 
 /* paragraph indention */
 $paragraph-indent           : false !default; // true, false (default)
-$indent-var                 : 1.3em !default;
+$indent-var                 : 1.2em !default;
 
 /* system typefaces */
 $serif                      : Georgia, Times, serif !default;
-$sans-serif                 : "Nunito", -apple-system, ".SFNSText-Regular", "San Francisco", "Roboto", "Segoe UI", "Helvetica Neue", "Lucida Grande", Arial, sans-serif !default;
-$monospace                  : Hack, Menlo, Monaco, Consolas, "Lucida Console", monospace !default;
+$sans-serif                 : "Lato","Nunito", -apple-system, ".SFNSText-Regular", "San Francisco", "Roboto", "Segoe UI", "Helvetica Neue", "Lucida Grande", Arial, sans-serif !default;
+$monospace                  : "Cascadia Mono", Hack, Menlo, Monaco, Consolas, "Lucida Console", monospace !default;
 
 /* sans serif typefaces */
 $sans-serif-narrow          : $sans-serif !default;
