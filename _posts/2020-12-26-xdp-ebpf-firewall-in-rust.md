@@ -15,6 +15,13 @@ According to XDP developers, on a benchmark they conducted, XDP far out-performe
 Linux on all fronts - _tx_, _rx_ and _forward_ (in the order of 12-25x!) when used with a NIC that that offloads XDP
 such as the ones from Intel/Mellanox/Netronome (mlx/ixgbe/nfp etc).
 
+This is [mind-blowing](https://github.com/tohojo/xdp-paper/blob/master/xdp-the-express-data-path.pdf) on 2018 network hardware.
+> We show that XDP achieves single-core packet processing per-
+formance as high as 24 million packets per second, and illustrate
+the flexibility of the programming model through three example
+use cases: layer-3 routing, inline DDoS protection and layer-4 load
+balancing
+
 ## Dependencies Installation and Rust setup
 
 Install dependencies:
@@ -194,3 +201,4 @@ $ cargo bpf load -i eth0 target/bpf/programs/fw/fw.elf
 - [xdp-newbies mailing list](mailto:majordomo@vger.kernel.org?subject=subscribe xdp-newbies&body=subscribe xdp-newbies)
 - [Netronome smart NIC XDP](https://www.youtube.com/watch?v=kFC8Bfk3FuI)
 - [XDP in RHEL (C implementation and guides)](https://developers.redhat.com/blog/2018/12/06/achieving-high-performance-low-latency-networking-with-xdp-part-1/)
+- [XDP Paper](https://github.com/tohojo/xdp-paper/blob/master/xdp-the-express-data-path.pdf)
