@@ -7,15 +7,72 @@
 
 # Site Settings
 locale                   : "en-AU"
-title                    : "Tales, thoughts and random blurbs on software and systems"
+title                    : "Ishwor Gurung"
 title_separator          : "-"
 name                     : "Ishwor Gurung"
-description              : "Tales from the trenches, thoughts and random blurbs on software and systems from yours sincerely"
-url                      : "https://pub.gctl.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
+description              : "Notes on AI, software development, systems, UNIX, networking, and distributed systems."
+first_name               : "Ishwor"
+last_name                : "Gurung"
+contact_note             : ""
+keywords                 : "AI, software development, systems, UNIX, distributed systems, networking"
+lang                     : "en"
+icon                     : "⚙️"
+url                      : "https://pub.gctl.io" # the base hostname & protocol for your site
 baseurl                  : # the subpath of your site, e.g. "/blog"
 repository               : "ishworgurung/ishworgurung.github.io" # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
-teaser                   : # path of fallback teaser image, e.g. "/assets/images/500x300.png"
-# breadcrumbs            : false # true, false (default)
+footer_text              : "Writing about AI, software development, systems, and UNIX."
+navbar_fixed             : true
+footer_fixed             : true
+enable_navbar_social     : true
+search_enabled           : true
+socials_in_search        : true
+posts_in_search          : true
+max_width                : 1200px
+back_to_top              : true
+enable_darkmode          : false
+enable_math              : true
+enable_medium_zoom       : true
+serve_og_meta            : true
+blog_name                : "Field notes"
+blog_description         : "Practical notes on AI, software, systems, and UNIX."
+pagination:
+  enabled: true
+related_blog_posts:
+  enabled: true
+  max_related: 5
+al_folio:
+  api_version: 1
+  style_engine: tailwind
+  tailwind:
+    version: 4.1.18
+    preflight: false
+    css_entry: assets/tailwind/app.css
+  distill:
+    engine: distillpub-template
+    source: al-org-dev/distill-template#al-folio
+    allow_remote_loader: false
+  features:
+    cv:
+      enabled: false
+    distill:
+      enabled: true
+  compat:
+    bootstrap:
+      enabled: false
+  upgrade:
+    channel: stable
+    auto_apply_safe_fixes: false
+
+theme: al_folio_core
+
+third_party_libraries:
+  fontawesome:
+    url:
+      css: "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"
+  google_fonts:
+    url:
+      fonts: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+
 words_per_minute         : 200
 comments:
   provider               : # false (default), "disqus", "discourse", "facebook", "google-plus", "staticman", "custom"
@@ -60,7 +117,7 @@ facebook:
   username               : ishwor.gurung
   app_id                 :
   publisher              :
-og_image                 : # Open Graph/Twitter default site image
+og_image                 : "/assets/images/avatar.png" # Open Graph/Twitter default site image
 # For specifying social profiles
 # - https://developers.google.com/structured-data/customize/social-profiles
 social:
@@ -78,8 +135,8 @@ analytics:
 # Site Author
 author:
   name             : "Ishwor Gurung"
-  avatar           : "/assets/images/avatar.png" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
-  bio              : "Software. UNIX. Distributed."
+  avatar           : "/assets/images/avatar.png" # path of avatar image
+  bio              : ""
   location         : "Sydney, Australia"
   email            : "me@ishworgurung.com"
   uri              :
@@ -171,26 +228,30 @@ sass:
 
 
 # Outputting
-permalink: /:categories/:title/
-paginate: 12 # amount of posts to show
-paginate_path: /page:num/
+permalink: /blog/:year/:title/
 timezone: # http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 
 # Plugins
 plugins:
-  - jekyll-paginate
+  - al_folio_core
+  - al_icons
+  - al_folio_distill
+  - al_search
+  - al_img_tools
+  - al_math
+  - al_comments
+  - jekyll-archives-v2
+  - jekyll-3rd-party-libraries
+  - jekyll-paginate-v2
+  - jekyll-get-json
+  - jekyll-link-attributes
+  - jekyll-scholar
   - jekyll-sitemap
-  - jekyll-gist
+  - jekyll-socials
+  - jekyll-tabs
   - jekyll-feed
-  - jemoji
-
-# mimic GitHub Pages with --safe
-whitelist:
-  - jekyll-paginate
-  - jekyll-sitemap
-  - jekyll-gist
-  - jekyll-feed
+  - jekyll-toc
   - jemoji
 
 
@@ -238,10 +299,6 @@ defaults:
       path: ""
       type: posts
     values:
-      layout: single
-      author_profile: true
-      read_time: true
-      comments: true # true
-      share: true
+      layout: post
+      comments: false
       related: true
-      content_support: true
