@@ -4,8 +4,8 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-S3_BUCKET="s3://pub.gctl.io"
-CLOUDFRONT_DISTRIBUTION_ID="E5OC8E0HGYHMD"
+S3_BUCKET="s3://gctl.io"
+CLOUDFRONT_DISTRIBUTION_ID="E158YB5V3B1OU6"
 
 echo "==> Building site"
 rm -rf _site

@@ -9,7 +9,7 @@
                 "AWS": "*"
             },
             "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::pub.gctl.io/*"
+            "Resource": "arn:aws:s3:::gctl.io/*"
         }
     ]
 }

@@ -17,7 +17,7 @@ contact_note             : ""
 keywords                 : "AI, software development, systems, UNIX, distributed systems, networking"
 lang                     : "en"
 icon                     : "⚙️"
-url                      : "https://pub.gctl.io" # the base hostname & protocol for your site
+url                      : "https://gctl.io" # the base hostname & protocol for your site
 baseurl                  : # the subpath of your site, e.g. "/blog"
 repository               : "ishworgurung/ishworgurung.github.io" # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
 footer_text              : "Writing about AI, software development, systems, and UNIX."
