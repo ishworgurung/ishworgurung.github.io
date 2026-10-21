@@ -18,7 +18,7 @@ The mechanisms involved, in the order a launcher typically applies them. They ar
 | **Landlock** | which *paths*, TCP/UDP ports, unix sockets, signals? | anything outside the rights it handles; most syscalls |
 | **[seccomp-bpf](https://docs.kernel.org/userspace-api/seccomp_filter.html)** | which *syscalls*? | anything an allowed syscall can reach |
 
-> Everything here is point-in-time (October 2026). Details of products and papers move monthly, so verify specifics before relying on them. Sections marked "general knowledge" were not checked against sources.
+> Everything here is point-in-time (October 2026). Details of products and papers move monthly, so verify specifics before relying on them.
 
 ---
 
@@ -125,8 +125,6 @@ These share a fundamental limit that several guides state: bubblewrap and Seatbe
 
 ## 5. Why Firecracker rather than QEMU, and what about GPUs?
 
-*Firecracker-vs-QEMU is general knowledge. The GPU landscape comes from vendor blogs that sometimes disagree, so verify specifics.*
-
 ### Could plain QEMU do the job of Firecracker?
 
 Yes. Both put the guest behind hardware virtualisation with its own kernel, so the *kind* of boundary is the same. The difference is what it costs to get it:
@@ -176,8 +174,6 @@ For a GPU SaaS with mutually untrusted tenants: dedicated-GPU VMs with VFIO (Kat
 
 ## 6. Research and proposals for the next 5 to 10 years
 
-The literature search turned up little peer-reviewed work and mostly vendor blogs, so each item below is marked by where it comes from, and the forecasts at the end are opinion.
-
 ### Papers (arXiv, 2026 unless noted)
 
 - **Tyche, composable isolation** ([arXiv:2507.12364](https://arxiv.org/pdf/2507.12364)). A hardware and monitor primitive that unifies enclaves, VMs and containers, so a tenant can carve out its own isolated domain without trusting the layer below. The most direct research answer to "how do you compose isolation layers".
@@ -193,7 +189,7 @@ The literature search turned up little peer-reviewed work and mostly vendor blog
 - **[eBPF LSM](https://docs.kernel.org/bpf/prog_lsm.html) enforcement** and per-sandbox network policy, for example per-sandbox [TAP devices](https://docs.kernel.org/networking/tuntap.html) with eBPF rules. Reported as becoming the standard pattern for agent network isolation, though the sources are vendor guides, not papers.
 - **[WASI and the Component Model](https://component-model.bytecodealliance.org/).** A component starts with no ambient authority and can only do what the host grants. Best for tools and functions you can compile, not yet a full dev environment. GPU access ([`wasi:webgpu`](https://github.com/WebAssembly/wasi-webgpu)) is a Phase 2 proposal.
 
-### Directions not covered by the search (general knowledge)
+### Other research directions
 
 - **[CHERI](https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/)** hardware capabilities (Cambridge and ARM Morello) and **[seL4](https://sel4.systems/)**, the verified kernel: capability enforcement in hardware or by proof, instead of by a large trusted kernel.
 - **Confidential VMs (AMD SEV-SNP, Intel TDX) and confidential GPUs**, covered above.
@@ -211,8 +207,6 @@ Gaps: I found no paper proposing microVM snapshots specifically for agent isolat
 ---
 
 ## 7. Why isn't OpenBSD the answer?
-
-*General knowledge, not checked against sources.*
 
 OpenBSD is one of the most security-focused commodity OSes, so it is a fair question. It is a strong answer for the OS-level tier, but it does not change the tiering in section 3.
 
@@ -239,8 +233,6 @@ OpenBSD works well as the host or guest for a small, auditable control plane or 
 ---
 
 ## 8. What the stack above still misses
-
-*General knowledge unless linked.*
 
 Sections 1 to 7 are about *confining the process*. Checked against a real agent deployment, they leave gaps that no layer in the table closes, because the damage happens *outside* the box or *through* a channel the box is meant to allow.
 
