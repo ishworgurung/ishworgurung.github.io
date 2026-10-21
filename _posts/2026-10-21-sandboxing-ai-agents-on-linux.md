@@ -1,22 +1,22 @@
 # Sandboxing untrusted AI agents on Linux
 
-An AI coding agent runs code that nobody reviewed: shell commands, generated scripts, `pip` and `npm` installs, tool plugins. It can be steered by prompt injection hidden in a web page or a dependency, and even a well-meaning agent can `rm -rf` the wrong tree. So what does a sandbox for that code actually have to do on Linux, and why is "minimal" so hard?
+An AI coding agent runs code before any human has reviewed it: shell commands, generated scripts, `pip` and `npm` installs, tool plugins. It can be steered by [prompt injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) hidden in a web page or a dependency, and even a well-meaning agent can `rm -rf` the wrong tree. AI review agents exist, but they mostly read the diff *after* the code has already run, and they are LLMs that the same prompt injection can fool, so they complement a sandbox rather than replace it. So what does a sandbox for that code actually have to do on Linux, and why is "minimal" so hard?
 
-### TL;DR
+## TL;DR
 
-A Linux sandbox is a **stack of partial mechanisms that all share one host kernel**. Each layer stops one class of thing and nothing else, and there is no single switch. The strongest boundary is a *second kernel*, which means a virtual machine. That is why the serious hosted products are microVMs, and why the OS-level tools (Landlock, seccomp, bubblewrap) are best kept for code you mostly trust on a machine you control.
+A Linux sandbox is a **stack of partial mechanisms that all share one host kernel**. Each layer stops one class of thing and nothing else, and there is no single switch. The strongest boundary is a *second kernel*, which means a virtual machine. That is why the serious hosted products are microVMs, and why the OS-level tools ([Landlock](https://docs.kernel.org/userspace-api/landlock.html), seccomp, [bubblewrap](https://github.com/containers/bubblewrap)) are best kept for code you mostly trust on a machine you control.
 
-The mechanisms involved, roughly from weakest to strongest boundary:
+The mechanisms involved, in the order a launcher typically applies them. They are not ranked: each answers a different question.
 
 | Layer | Question it answers | What it does **not** stop |
 |---|---|---|
-| **cgroup v2** | how *much*? | anything within quota; not a security boundary |
-| **user namespace** | *who* am I? | kernel bugs reachable by unprivileged users |
-| **pid/net/ipc/uts namespaces** | what can I *see*? | the shared kernel behind every view |
-| **mount namespace + `pivot_root`** | what *filesystem*? | files under the roots you granted |
-| **capabilities + `no_new_privs`** | can I *re-privilege*? | syscalls that need no privilege |
-| **Landlock** | which *paths* (and increasingly sockets, signals)? | non-filesystem syscalls |
-| **seccomp-bpf** | which *syscalls*? | anything an allowed syscall can reach |
+| **[cgroup v2](https://docs.kernel.org/admin-guide/cgroup-v2.html)** | how *much*? | anything within quota; not a security boundary |
+| **[user namespace](https://man7.org/linux/man-pages/man7/user_namespaces.7.html)** | *who* am I? | kernel bugs reachable by unprivileged users |
+| **[pid/net/ipc/uts namespaces](https://man7.org/linux/man-pages/man7/namespaces.7.html)** | what can I *see*? | the shared kernel behind every view |
+| **mount namespace + [`pivot_root`](https://man7.org/linux/man-pages/man2/pivot_root.2.html)** | what *filesystem*? | files under the roots you granted |
+| **[capabilities](https://man7.org/linux/man-pages/man7/capabilities.7.html) + [`no_new_privs`](https://docs.kernel.org/userspace-api/no_new_privs.html)** | can I *re-privilege*? | syscalls that need no privilege |
+| **Landlock** | which *paths*, TCP/UDP ports, unix sockets, signals? | anything outside the rights it handles; most syscalls |
+| **[seccomp-bpf](https://docs.kernel.org/userspace-api/seccomp_filter.html)** | which *syscalls*? | anything an allowed syscall can reach |
 
 > Everything here is point-in-time (October 2026). Details of products and papers move monthly, so verify specifics before relying on them. Sections marked "general knowledge" were not checked against sources.
 
@@ -24,28 +24,28 @@ The mechanisms involved, roughly from weakest to strongest boundary:
 
 ## 1. The current challenges
 
-**One shared kernel is the whole problem.** Namespaces, cgroups, capabilities, seccomp and Landlock all run *in* the host kernel. A single kernel vulnerability reachable from the sandbox is a full escape. The Linux syscall surface is enormous (hundreds of syscalls, each with many argument shapes), and features like io_uring *add* surface. Enabling unprivileged user namespaces, which you need to sandbox without root, itself exposes more kernel code to untrusted callers and has been a recurring source of local privilege-escalation CVEs.
+**One shared kernel is the whole problem.** Namespaces, cgroups, capabilities, seccomp and Landlock all run *in* the host kernel. A single kernel vulnerability reachable from the sandbox is a full escape. The Linux syscall surface is enormous (hundreds of syscalls, each with many argument shapes), and features like [io_uring](https://man7.org/linux/man-pages/man7/io_uring.7.html) *add* surface. Enabling unprivileged user namespaces, which you need to sandbox without root, itself exposes more kernel code to untrusted callers and has been a recurring source of local privilege-escalation CVEs.
 
 **Agents need capability, which fights confinement.** A file-only agent is easy to box. A *useful* coding agent wants to install packages (network), spawn compilers and test runners (exec and many syscalls), read large parts of the filesystem, and sometimes use GPUs. Every capability you grant is attack surface you re-open. The art is *least privilege per task*, which is exactly what is hard to specify up front.
 
-**Network egress is the real prize, and the hardest to get right.** The damaging outcomes are network actions: exfiltrating secrets, reaching internal services, hitting the cloud metadata endpoint (`169.254.169.254`), pulling a malicious payload. A binary on/off switch (blocking `AF_INET` sockets in seccomp) is too coarse for an agent that must reach a package registry. A *filtering proxy* is the right tool, but it needs TLS interception or a domain allow-list, plus care that the agent can't just talk to `localhost` services or use DNS as a covert channel.
+**Network egress is the real prize, and the hardest to get right.** The damaging outcomes are network actions: exfiltrating secrets, reaching internal services, hitting the cloud metadata endpoint ([`169.254.169.254`](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html)), pulling a malicious payload. A binary on/off switch (blocking `AF_INET` sockets in seccomp) is too coarse for an agent that must reach a package registry. A *filtering proxy* is the right tool, but it needs TLS interception or a domain allow-list, plus care that the agent can't just talk to `localhost` services or use DNS as a covert channel.
 
 **Secrets and ambient authority leak in surprising ways.** Environment variables, inherited file descriptors, cloud instance-metadata credentials, `~/.aws`, `~/.ssh`, a mounted Docker socket, a `GITHUB_TOKEN` in the environment: none of these are "files the agent opened", so a filesystem sandbox alone misses them. A 2026 security note on AWS Bedrock AgentCore argued that its code-interpreter microVM still exposes execution-role credentials via the metadata service; AWS considers that by design. Whoever is right, the lesson stands: *isolation of the compute does not imply isolation of the credentials*.
 
-**Views leak the host.** Inside a container, `/proc/cpuinfo`, `/proc/meminfo` and `/proc/stat` show the *host's* numbers unless something virtualises them (`lxcfs`). That is the same reason `top` in a container shows host CPU and steal time. Information disclosure is a weaker threat than escape, but it feeds fingerprinting and side channels.
+**Views leak the host.** Inside a container, `/proc/cpuinfo`, `/proc/meminfo` and `/proc/stat` show the *host's* numbers unless something virtualises them ([`lxcfs`](https://github.com/lxc/lxcfs)). That is the same reason `top` in a container shows host CPU and steal time. Information disclosure is a weaker threat than escape, but it feeds fingerprinting and side channels.
 
 **Correctness is a sequencing minefield.** The layers have prerequisite chains and failure modes. `no_new_privs` must be set before an unprivileged seccomp filter. A gid map needs `setgroups=deny`. A bind mount can't go read-only in one step on older kernels. Landlock rights must be masked to the running ABI or `restrict_self` fails. Seccomp goes in last, so your own setup syscalls aren't filtered. Each is a place to silently under-confine, and **a half-applied sandbox is worse than none**, because you think you're protected. A good sandbox aborts on any layer that fails rather than running the agent half-confined.
 
 **Deny-lists have traps.** A syscall deny-list is deceptively easy to under-build:
 
 - **io_uring.** It can perform socket, connect and `openat` operations *as ring operations*, without issuing those syscalls, so a naive seccomp network block is sidestepped by an agent that opens a ring and connects through it. Any deny-list that ignores io_uring is porous.
-- **The x32 ABI.** On x86-64, x32 syscalls carry the same `AUDIT_ARCH_X86_64` token but OR `0x40000000` into the number. A filter that only compares plain numbers lets the x32 variant of every denied call through.
-- **`ioctl(TIOCSTI)`.** A process sharing the controlling terminal can push bytes into the terminal's input queue, and the parent shell runs them after the sandbox exits. That is a full escape that touches no file and opens no socket.
+- **The [x32 ABI](https://lwn.net/Articles/456731/).** On x86-64, x32 syscalls carry the same `AUDIT_ARCH_X86_64` token but OR `0x40000000` into the number. A filter that only compares plain numbers lets the x32 variant of every denied call through.
+- **[`ioctl(TIOCSTI)`](https://man7.org/linux/man-pages/man2/TIOCSTI.2const.html).** A process sharing the controlling terminal can push bytes into the terminal's input queue, and the parent shell runs them after the sandbox exits. That is a full escape that touches no file and opens no socket. Since Linux 6.2 the host can switch it off with `sysctl dev.tty.legacy_tiocsti=0`, and several distributions ship it off, but a sandbox should still call [`setsid()`](https://man7.org/linux/man-pages/man2/setsid.2.html) and filter the ioctl itself.
 - **Arch confusion.** A 32-bit (`i386`) calling convention uses different numbers for different calls, so a filter must check the architecture first.
 
 Each hole is invisible if you reason about syscalls by name. This is why serious sandboxes invert to **deny-by-default** and lean on audited, maintained profiles instead of a hand-rolled list.
 
-**Portability and kernel-version drift.** Landlock needs Linux 5.13 or newer and grows new abilities per ABI (network connect scoping, IPC scoping and pathname-unix-socket scoping are recent or in flight). Seccomp syscall numbers are per-architecture. Unprivileged user namespaces are disabled on some hardened distributions, and Ubuntu 24.04's AppArmor policy blocks bubblewrap's user namespaces by default. A sandbox that works on your machine may fail open elsewhere.
+**Portability and kernel-version drift.** Landlock needs Linux 5.13 or newer and grows new abilities per ABI: TCP bind and connect by port (ABI 4, Linux 6.7), device ioctls (ABI 5), abstract-unix-socket and signal scoping (ABI 6, Linux 6.12), audit logging (ABI 7), pathname unix sockets (ABI 9) and UDP (ABI 10). A sandbox written for ABI 10 quietly gets less on a 6.6 LTS kernel unless it checks. Seccomp syscall numbers are per-architecture. Unprivileged user namespaces are disabled on some hardened distributions, and from Ubuntu 24.04 [AppArmor](https://ubuntu.com/blog/ubuntu-23-10-restricted-unprivileged-user-namespaces) restricts them (`kernel.apparmor_restrict_unprivileged_userns=1`), which breaks bubblewrap unless a profile grants it `userns`. A sandbox that works on your machine may fail open elsewhere.
 
 **Performance and density.** Hosted agent platforms run *many* sandboxes and want sub-second cold starts and snapshot/restore. OS-level sandboxes are cheap (microseconds to milliseconds) but weak. VMs are strong but were historically slow to boot, which is the gap Firecracker plus snapshotting closed, and why microVMs became viable for this at all.
 
@@ -53,17 +53,17 @@ Each hole is invisible if you reason about syscalls by name. This is why serious
 
 ## 2. Where the future is moving
 
-- **MicroVMs are becoming the default for *untrusted* code, not the exception.** Firecracker-style microVMs give each sandbox its own kernel at roughly 100 to 150 ms cold start, and snapshot/restore (lazy page-fault-driven restore via `userfaultfd`) makes per-task or per-step forking cheap. The hosted market (E2B, Vercel Sandbox, AWS AgentCore) has largely standardised on this.
+- **MicroVMs are becoming the default for *untrusted* code, not the exception.** [Firecracker](https://firecracker-microvm.github.io/)-style microVMs give each sandbox its own kernel at roughly 100 to 150 ms cold start, and snapshot/restore (lazy page-fault-driven restore via [`userfaultfd`](https://docs.kernel.org/admin-guide/mm/userfaultfd.html)) makes per-task or per-step forking cheap. The hosted market (E2B, Vercel Sandbox, AWS AgentCore) has largely standardised on this.
 
-- **A tiered "right-sized isolation" model is winning over one-size-fits-all.** Guidance is converging across 2026 write-ups: OS-level confinement (Landlock, seccomp, bubblewrap) for *trusted* code on *trusted* machines; gVisor as a middle tier; microVMs and Kata for *untrusted, multi-tenant* code. The interesting engineering is in *choosing* and *composing* tiers per workload, not in one perfect sandbox.
+- **A tiered "right-sized isolation" model is winning over one-size-fits-all.** Guidance is converging across 2026 write-ups: OS-level confinement (Landlock, seccomp, bubblewrap) for *trusted* code on *trusted* machines; [gVisor](https://gvisor.dev/docs/) as a middle tier; microVMs and [Kata](https://katacontainers.io/) for *untrusted, multi-tenant* code. The interesting engineering is in *choosing* and *composing* tiers per workload, not in one perfect sandbox.
 
-- **Landlock is maturing into a real agent primitive.** It began filesystem-only (Linux 5.13). ABI 6 (Linux 6.12) added IPC and signal *scoping*, and later work adds network and unix-socket scoping. That turns Landlock from "restrict files" into "restrict a process tree's whole resource reach", unprivileged and self-applied, which is ideal for a CLI agent that sandboxes itself.
+- **Landlock is maturing into a real agent primitive.** It began filesystem-only (Linux 5.13). ABI 4 (Linux 6.7) added TCP bind and connect rules, ABI 6 (Linux 6.12) added abstract-unix-socket and signal *scoping*, and ABIs 9 and 10 added pathname unix sockets and UDP. That turns Landlock from "restrict files" into "restrict a process tree's whole resource reach", unprivileged and self-applied, which is ideal for a CLI agent that sandboxes itself.
 
-- **seccomp-notify supervisors put user-space policy in the loop.** Instead of a static allow/deny BPF program, the kernel can *forward* a syscall to a supervisor process that decides at runtime and can even virtualise the effect. The 2026 research prototype **Sandlock** (Wang and Zheng, [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)) combines Landlock and seccomp with a seccomp-notification supervisor to get dynamic network decisions, HTTP-level access control, and TOCTOU-safe inspection of `execve` arguments, all unprivileged, with about 5 ms startup overhead. "Static policy compiled into the kernel, plus a narrow supervisor for the hard cases" is likely where lightweight agent sandboxes head.
+- **[seccomp-notify](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) supervisors put user-space policy in the loop.** Instead of a static allow/deny BPF program, the kernel can *forward* a syscall to a supervisor process that decides at runtime and can even virtualise the effect. The 2026 research prototype **Sandlock** (Wang and Zheng, [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)) combines Landlock and seccomp with a seccomp-notification supervisor to get dynamic network decisions, HTTP-level access control, and [TOCTOU](https://cwe.mitre.org/data/definitions/367.html)-safe inspection of `execve` arguments, all unprivileged, with about 5 ms startup overhead. "Static policy compiled into the kernel, plus a narrow supervisor for the hard cases" is likely where lightweight agent sandboxes head.
 
-- **Orchestration is standardising.** The Kubernetes SIG's **agent-sandbox** (a `Sandbox` CRD with warm pools, delegating isolation to gVisor or Kata via `RuntimeClass`) signals that "a sandbox" is becoming a first-class, schedulable object with stable identity, persistent storage and a sub-second claim from a pre-warmed pool, rather than an ad-hoc `docker run`.
+- **Orchestration is standardising.** The Kubernetes SIG's **agent-sandbox** (a `Sandbox` [CRD](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) with warm pools, delegating isolation to gVisor or Kata via [`RuntimeClass`](https://kubernetes.io/docs/concepts/containers/runtime-class/)) signals that "a sandbox" is becoming a first-class, schedulable object with stable identity, persistent storage and a sub-second claim from a pre-warmed pool, rather than an ad-hoc `docker run`.
 
-- **Snapshotting is a product feature, not just a speed trick.** Pause/resume, fork-a-running-state, and "close your laptop, the agent keeps going" (AWS AgentCore) are becoming table stakes. That pushes toward VM-level isolation, because snapshotting a whole guest is cleaner than checkpointing a process tree (CRIU is fragile).
+- **Snapshotting is a product feature, not just a speed trick.** Pause/resume, fork-a-running-state, and "close your laptop, the agent keeps going" (AWS AgentCore) are becoming table stakes. That pushes toward VM-level isolation, because snapshotting a whole guest is cleaner than checkpointing a process tree ([CRIU](https://criu.org/Main_Page) is fragile).
 
 - **Egress control moves up the stack.** The trend is away from "block all sockets" toward *identity-aware filtering proxies* with per-domain allow-lists and audit. Agents must reach *some* network, and the useful policy is about *where*, not *whether*.
 
@@ -71,22 +71,22 @@ Each hole is invisible if you reason about syscalls by name. This is why serious
 
 ## 3. Contenders vs the status quo
 
-The status quo for running arbitrary code has been **OCI containers** (Docker and `runc`): namespaces, cgroups, a default seccomp profile and dropped capabilities. They have good ergonomics and a huge ecosystem, but they share a kernel, so they are insufficient for genuinely untrusted, multi-tenant code. The contenders differ mainly in **where the trust boundary sits**.
+The status quo for running arbitrary code has been **[OCI](https://github.com/opencontainers/runtime-spec) containers** (Docker and [`runc`](https://github.com/opencontainers/runc)): namespaces, cgroups, a default seccomp profile and dropped capabilities. They have good ergonomics and a huge ecosystem, but they share a kernel, so they are insufficient for genuinely untrusted, multi-tenant code. The contenders differ mainly in **where the trust boundary sits**.
 
 | Approach | Boundary | Isolation strength | Start | Cost / density | Best fit for agents |
 |---|---|---|---|---|---|
 | `chroot` | path resolution only | ~none (escapable) | instant | free | not a sandbox |
-| **bwrap / nsjail / Landlock launchers** | namespaces, shared kernel | low to moderate | ~ms | very high | trusted code; per-call confinement |
+| **bwrap / [nsjail](https://github.com/google/nsjail) / Landlock launchers** | namespaces, shared kernel | low to moderate | ~ms | very high | trusted code; per-call confinement |
 | **OCI container** (`runc`) | namespaces + seccomp, shared kernel | moderate | ~100 ms | very high | semi-trusted; the status quo |
 | **gVisor** | user-space kernel intercepts syscalls | high (small host surface) | ~100 to 300 ms | high | untrusted code without a VM; some compatibility cost |
-| **Kata / Firecracker / Cloud Hypervisor** | separate guest kernel (KVM) | highest (on Linux) | ~100 to 150 ms, faster from snapshot | moderate | untrusted, multi-tenant: the serious default |
-| **WASM runtime** | capability-based VM, no syscalls | high for *what it supports* | ~ms | very high | narrow, pure-compute tools |
+| **Kata / Firecracker / [Cloud Hypervisor](https://www.cloudhypervisor.org/)** | separate guest kernel (KVM) | highest (on Linux) | ~100 to 150 ms, faster from snapshot | moderate | untrusted, multi-tenant: the serious default |
+| **[WASM](https://webassembly.org/) runtime** | capability-based VM, no syscalls | high for *what it supports* | ~ms | very high | narrow, pure-compute tools |
 
 Moving down the table trades **density and compatibility** for **isolation strength**. Containers sit in the middle and are fine for code you mostly trust. The direction of travel for *untrusted* agent code is toward gVisor and especially microVMs, with OS-level tools relegated to the innermost layer or to trusted single-user setups.
 
 A few nuances the table flattens:
 
-- **gVisor vs microVM** isn't strictly "weaker vs stronger". gVisor shrinks the *host* syscall surface to a few dozen but adds its own (smaller) kernel's surface and some workload incompatibility. A microVM gives a full, familiar kernel per guest, but a larger in-guest surface, and the KVM/virtio boundary is the thing to trust.
+- **gVisor vs microVM** isn't strictly "weaker vs stronger". gVisor shrinks the *host* syscall surface to a few dozen but adds its own (smaller) kernel's surface and some workload incompatibility. A microVM gives a full, familiar kernel per guest, but a larger in-guest surface, and the KVM/[virtio](https://docs.oasis-open.org/virtio/virtio/v1.3/virtio-v1.3.html) boundary is the thing to trust.
 - **WASM** is the strongest *per-feature* boundary (no ambient syscalls at all), but it can only run what has been compiled to it and wired to explicit host capabilities. It is great for a sandboxed function, not for "run this arbitrary repo's test suite".
 - **Composition beats any single row.** Real systems stack them: OS-level confinement *inside* a container *inside* a microVM, with a filtering proxy on egress. Each layer catches what the one inside it missed.
 
@@ -98,21 +98,21 @@ Two families, by where they run.
 
 ### Local coding-agent CLIs (the OS-level tier)
 
-- **OpenAI Codex CLI.** On Linux it uses **Landlock and seccomp**: Landlock restricts the filesystem to user-approved directories, and seccomp blocks outbound network by default. A newer path vendoring **bubblewrap** sits behind a feature flag. On macOS it uses **Seatbelt** (`sandbox-exec`). Its docs warn that inside Docker the needed APIs may be unavailable and sandboxing can fail, which is the portability problem from section 1 made concrete.
-- **Claude Code.** Anthropic's **sandbox-runtime** uses **bubblewrap** for filesystem isolation on Linux, plus a **SOCKS5 filtering proxy** for domain-level egress control (it needs `bubblewrap` and `socat`; an optional seccomp filter adds unix-socket blocking). On macOS it uses `sandbox-exec`. By default it warns and runs unsandboxed if dependencies are missing, with a `failIfUnavailable` hard-fail mode for managed deployments. That is the "fail open vs fail closed" decision made visible.
-- **Gemini CLI.** The sandbox is **opt-in** (off by default) and pluggable: macOS Seatbelt, or Docker, Podman, **gVisor** or LXC containers. It mainly limits the filesystem to the project directory.
+- **[OpenAI Codex CLI](https://developers.openai.com/codex/security).** On Linux it uses **Landlock and seccomp**: Landlock restricts the filesystem to user-approved directories, and seccomp blocks outbound network by default. A newer path vendoring **bubblewrap** sits behind a feature flag. On macOS it uses **Seatbelt** (`sandbox-exec`). Its docs warn that inside Docker the needed APIs may be unavailable and sandboxing can fail, which is the portability problem from section 1 made concrete.
+- **[Claude Code](https://code.claude.com/docs/en/sandboxing).** Anthropic's **sandbox-runtime** uses **bubblewrap** on Linux for filesystem isolation and an empty network namespace. The only way out is an **HTTP proxy** (HTTP and HTTPS) and a **[SOCKS5](https://datatracker.ietf.org/doc/html/rfc1928) proxy** (other TCP) on the host, reached through unix sockets bind-mounted into the sandbox and bridged by `socat`, which gives domain-level egress control. A seccomp filter blocks other unix sockets on x86-64 and arm64; without it, unix sockets stay open with a warning. On macOS it uses `sandbox-exec`. By default it warns and runs unsandboxed if dependencies are missing, with a `failIfUnavailable` hard-fail mode for managed deployments. That is the "fail open vs fail closed" decision made visible.
+- **[Gemini CLI](https://geminicli.com/docs/cli/sandbox/).** The sandbox is **opt-in** (off by default) and pluggable: macOS Seatbelt, or Docker, Podman, **gVisor** or LXC containers. It mainly limits the filesystem to the project directory.
 
 These share a fundamental limit that several guides state: bubblewrap and Seatbelt run on the **same kernel** as the host, so they offer little against kernel exploits. They are suitable mainly for *trusted* code on *trusted* machines, the right tool for a developer running an agent on their own laptop and not for a multi-tenant service executing strangers' code.
 
 ### Hosted execution platforms (VM or user-space-kernel tier)
 
-- **E2B.** Each sandbox is a **Firecracker microVM** with its own kernel. The core is Apache-2.0 and self-hostable, with roughly 150 ms cold start from snapshot, and snapshot-based pause/resume is central. It is widely treated as the reference open option.
-- **Vercel Sandbox.** **Firecracker microVMs**, with snapshots and time-limited sessions.
-- **Modal.** Sandboxes default to **gVisor**, with a VM runtime (own kernel) added for stronger isolation, and filesystem-snapshot persistence. A standout for **GPU** inside the sandbox.
-- **AWS Bedrock AgentCore Code Interpreter.** A per-session **isolated Linux microVM** with a persistent workspace and "keep running while your laptop is closed" semantics (see the credential-exposure critique in section 1).
-- **Cloudflare Sandbox SDK.** Built on Cloudflare **Containers**, one sandbox per VM. Its docs recommend per-user sandboxes because everything in one sandbox shares resources. Third parties dispute the exact mechanism, and it is pre-1.0.
-- **Daytona.** Fast-create persistent workspaces with snapshots and forks. Default isolation is reported as containers on the host kernel, with optional **Kata** or Sysbox for stronger isolation. Licensing and status were in flux in 2026, so verify before relying on it.
-- **Kubernetes `agent-sandbox`.** Not an isolator itself: a `Sandbox` CRD plus controller that schedules pods onto **gVisor or Kata** via `RuntimeClass`, with **warm pools** for sub-second starts. It is the orchestration story for self-hosting agent sandboxes at scale.
+- **[E2B](https://e2b.dev/docs).** Each sandbox is a **Firecracker microVM** with its own kernel. The core is Apache-2.0 and self-hostable, with roughly 150 ms cold start from snapshot, and snapshot-based pause/resume is central. It is widely treated as the reference open option.
+- **[Vercel Sandbox](https://vercel.com/docs/vercel-sandbox).** **Firecracker microVMs**, with snapshots and time-limited sessions.
+- **[Modal](https://modal.com/docs/guide/sandbox).** Sandboxes default to **gVisor**, with a VM runtime (own kernel) added for stronger isolation, and filesystem-snapshot persistence. A standout for **GPU** inside the sandbox.
+- **[AWS Bedrock AgentCore Code Interpreter](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter-tool.html).** A per-session **isolated Linux microVM** with a persistent workspace and "keep running while your laptop is closed" semantics (see the credential-exposure critique in section 1).
+- **[Cloudflare Sandbox SDK](https://developers.cloudflare.com/sandbox/).** Built on Cloudflare **Containers**, one sandbox per VM. Its docs recommend per-user sandboxes because everything in one sandbox shares resources. Third parties dispute the exact mechanism, and it is pre-1.0.
+- **[Daytona](https://www.daytona.io/docs/).** Fast-create persistent workspaces with snapshots and forks. Default isolation is reported as containers on the host kernel, with optional **Kata** or Sysbox for stronger isolation. Licensing and status were in flux in 2026, so verify before relying on it.
+- **[Kubernetes `agent-sandbox`](https://agent-sandbox.sigs.k8s.io/docs/getting_started/overview/).** Not an isolator itself: a `Sandbox` CRD plus controller that schedules pods onto **gVisor or Kata** via `RuntimeClass`, with **warm pools** for sub-second starts. It is the orchestration story for self-hosting agent sandboxes at scale.
 
 ### The pattern across all of them
 
@@ -135,9 +135,9 @@ Yes. Both put the guest behind hardware virtualisation with its own kernel, so t
 - **Boot time and footprint.** About 100 to 150 ms and a small per-VM memory overhead, against a slower start for a stock QEMU machine type with firmware. Agent workloads create thousands of short-lived sandboxes, so this matters.
 - **Density.** Low overhead per VM lets a host pack far more sandboxes.
 - **Snapshots.** Snapshot/restore is a core feature, and it is what "resume a warm sandbox" products build on.
-- **Built for multi-tenancy.** Written by AWS for Lambda and Fargate in Rust, and run under a *jailer* (seccomp, namespaces, cgroups).
+- **Built for multi-tenancy.** Written by AWS for Lambda and Fargate in Rust, and run under a *[jailer](https://github.com/firecracker-microvm/firecracker/blob/main/docs/jailer.md)* (seccomp, namespaces, cgroups).
 
-QEMU is the better choice when you need hardware Firecracker lacks (GPU passthrough, USB, other CPU architectures, Windows or macOS guests) or you want the most mature, widely supported tool. QEMU's `microvm` machine type with no firmware and a stripped config gets most of Firecracker's benefits, and Cloud Hypervisor and crosvm are other minimal VMMs. Firecracker is not the only way; it is the one managed platforms standardised on.
+QEMU is the better choice when you need hardware Firecracker lacks (GPU passthrough, USB, other CPU architectures, Windows or macOS guests) or you want the most mature, widely supported tool. QEMU's [`microvm` machine type](https://www.qemu.org/docs/master/system/i386/microvm.html) with no firmware and a stripped config gets most of Firecracker's benefits, and Cloud Hypervisor and [crosvm](https://crosvm.dev/book/) are other minimal VMMs. Firecracker is not the only way; it is the one managed platforms standardised on.
 
 ### Firecracker and GPUs
 
@@ -145,11 +145,11 @@ Stock Firecracker cannot give a guest a GPU. Its minimal device model has no PCI
 
 | Model | Boundary | Catch |
 |---|---|---|
-| **VFIO passthrough into a VM** (QEMU, Cloud Hypervisor, Kata) | Hypervisor, with exclusive device ownership | One GPU per tenant. Naive passthrough can re-open the boundary through GPU DMA, so it needs an IOMMU and care. |
-| **gVisor + `nvproxy`** | Filtered NVIDIA ioctls forwarded to the host driver | Weaker than a VM: the boundary is the driver's ioctl surface. Supports only selected driver versions and CUDA commands. |
-| **NVIDIA MIG** | Hardware-level partitions of one card | Supported data-centre GPUs only (A100, H100). Each partition can go to a different VM. |
-| **Time-slicing / vGPU** | Little (time-slicing); licensed vendor driver (vGPU) | Time-slicing suits only low-sensitivity workloads. |
-| **Plain container + NVIDIA Container Toolkit** | Shared host kernel and driver | Fine for trusted code, poor for untrusted. |
+| **[VFIO](https://docs.kernel.org/driver-api/vfio.html) passthrough into a VM** (QEMU, Cloud Hypervisor, Kata) | Hypervisor, with exclusive device ownership | One GPU per tenant. Naive passthrough can re-open the boundary through GPU DMA, so it needs an IOMMU and care. |
+| **gVisor + [`nvproxy`](https://gvisor.dev/docs/user_guide/gpu/)** | Filtered NVIDIA ioctls forwarded to the host driver | Weaker than a VM: the boundary is the driver's ioctl surface. Supports only selected driver versions and CUDA commands. |
+| **[NVIDIA MIG](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/)** | Hardware-level partitions of one card | Supported data-centre GPUs only (for example A100, H100, H200, B200). Each partition can go to a different VM. |
+| **Time-slicing / [vGPU](https://docs.nvidia.com/vgpu/index.html)** | Little (time-slicing); licensed vendor driver (vGPU) | Time-slicing suits only low-sensitivity workloads. |
+| **Plain container + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html)** | Shared host kernel and driver | Fine for trusted code, poor for untrusted. |
 | **No GPU in the sandbox** | n/a | Run agent glue code in a microVM and call inference over an API. Often enough. |
 
 Why it is hard: GPU drivers are large and complex, and passing a device through means the guest drives real hardware over DMA. That widens exactly the surface a microVM was chosen to shrink, and it makes cheap snapshot and migration much harder. The shared-kernel tier has the mirror-image property: a GPU is just `/dev/nvidia*` files you allow through Landlock, which is simple but leaves the driver reachable from the sandboxed process.
@@ -166,8 +166,8 @@ Either a **whole VM or bare-metal instance with a GPU attached** (the EC2 model:
 
 ### The leading edge
 
-- **Confidential-computing GPUs.** H100 and Blackwell can encrypt GPU memory and attest the device. NVIDIA's reference architecture runs Kata confidential VMs on AMD SEV-SNP or Intel TDX with VFIO passthrough. This protects tenants from the *host operator*, not just from each other. The cost is performance; recent work on Blackwell confidential computing is about recovering LLM-serving throughput lost to it.
-- **A Type-1 hypervisor per workload** (Edera, per a September 2026 comparison): VM-grade isolation while still sharing the card, instead of dedicating a whole GPU to each tenant.
+- **Confidential-computing GPUs.** H100 and Blackwell can attest the device and run in a confidential mode. On H100 the on-package HBM is **not** encrypted, because NVIDIA treats the package as the trust boundary. What is encrypted is CPU-to-GPU traffic, through encrypted bounce buffers over PCIe,<sup id="ref-bounce-buffer"><a href="#note-bounce-buffer">1</a></sup> and that is where most of the overhead comes from. Sources disagree on how much more Blackwell encrypts (HBM, NVLink), so check NVIDIA's own documentation. NVIDIA's [reference architecture](https://docs.nvidia.com/datacenter/cloud-native/confidential-containers/latest/overview.html) runs Kata confidential VMs on [AMD SEV-SNP](https://www.amd.com/en/developer/sev.html) or [Intel TDX](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html) with VFIO passthrough. This protects tenants from the *host operator*, not just from each other. The cost is performance; recent work on Blackwell confidential computing is about recovering LLM-serving throughput lost to it.
+- **A Type-1 hypervisor per workload** ([Edera](https://edera.dev/), per a September 2026 comparison): VM-grade isolation while still sharing the card, instead of dedicating a whole GPU to each tenant.
 - **Per-sandbox GPUs on cheap isolation.** The commercial push is ephemeral sandboxes that each get a GPU, but only Modal's whole-card approach is consistently documented.
 
 For a GPU SaaS with mutually untrusted tenants: dedicated-GPU VMs with VFIO (Kata or Cloud Hypervisor), plus confidential computing if tenants distrust the operator; MIG where a card must be subdivided; gVisor with `nvproxy` as the cheaper middle option whose boundary is the ioctl surface.
@@ -189,15 +189,15 @@ The literature search turned up little peer-reviewed work and mostly vendor blog
 
 ### Kernel proposals and standards
 
-- **Landlock extensions**, including IPC and unix-socket scoping (see the LWN and kernsec links below). Landlock's default is ambient authority, so every workload still needs an explicit policy.
-- **eBPF LSM enforcement** and per-sandbox network policy, for example per-sandbox TAP devices with eBPF rules. Reported as becoming the standard pattern for agent network isolation, though the sources are vendor guides, not papers.
-- **WASI and the Component Model.** A component starts with no ambient authority and can only do what the host grants. Best for tools and functions you can compile, not yet a full dev environment. GPU access (`wasi:webgpu`) is a Phase 2 proposal.
+- **Landlock extensions.** Much of this has now landed: abstract-socket and signal scoping in ABI 6, pathname unix sockets in ABI 9 and UDP in ABI 10 (see the kernel docs, LWN and kernsec links below). Landlock's default is ambient authority, so every workload still needs an explicit policy.
+- **[eBPF LSM](https://docs.kernel.org/bpf/prog_lsm.html) enforcement** and per-sandbox network policy, for example per-sandbox [TAP devices](https://docs.kernel.org/networking/tuntap.html) with eBPF rules. Reported as becoming the standard pattern for agent network isolation, though the sources are vendor guides, not papers.
+- **[WASI and the Component Model](https://component-model.bytecodealliance.org/).** A component starts with no ambient authority and can only do what the host grants. Best for tools and functions you can compile, not yet a full dev environment. GPU access ([`wasi:webgpu`](https://github.com/WebAssembly/wasi-webgpu)) is a Phase 2 proposal.
 
 ### Directions not covered by the search (general knowledge)
 
-- **CHERI** hardware capabilities (Cambridge and ARM Morello) and **seL4**, the verified kernel: capability enforcement in hardware or by proof, instead of by a large trusted kernel.
+- **[CHERI](https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/)** hardware capabilities (Cambridge and ARM Morello) and **[seL4](https://sel4.systems/)**, the verified kernel: capability enforcement in hardware or by proof, instead of by a large trusted kernel.
 - **Confidential VMs (AMD SEV-SNP, Intel TDX) and confidential GPUs**, covered above.
-- **In-process isolation** with Intel MPK and ARM MTE.
+- **In-process isolation** with [Intel MPK](https://man7.org/linux/man-pages/man7/pkeys.7.html) and [ARM MTE](https://docs.kernel.org/arch/arm64/memory-tagging-extension.html).
 - **Memory-safe VMMs and Rust in the kernel**, which shrink the bug surface beneath every layer.
 
 ### Where this seems to be heading (opinion)
@@ -220,16 +220,16 @@ Two framing points. The tiers are about **where the trust boundary sits**, not o
 
 ### What OpenBSD does well
 
-- **`pledge(2)` and `unveil(2)`** are arguably better designed than seccomp and Landlock. Coarse promises such as `stdio rpath inet` are hard to get wrong, where seccomp filters are easy to write badly. `unveil` limits which parts of the filesystem a process can see.
+- **[`pledge(2)`](https://man.openbsd.org/pledge.2) and [`unveil(2)`](https://man.openbsd.org/unveil.2)** are arguably better designed than seccomp and Landlock. Coarse promises such as `stdio rpath inet` are hard to get wrong, where seccomp filters are easy to write badly. `unveil` limits which parts of the filesystem a process can see.
 - **Privilege separation** is a core convention in its daemons.
 - **Exploit mitigations on by default** (W^X, ASLR, stack protector, removal of old code), a small audited codebase, and a good security track record.
 
 ### Why it is not enough for this problem
 
 1. **The shared-kernel limit applies to it too.** A smaller, cleaner kernel makes an exploit less likely, not impossible. For mutually untrusted tenants, hosted platforms want a second kernel, which OpenBSD alone does not give you.
-2. **Pledge is cooperative.** The program calls `pledge` on itself. That works for software written or patched for it, as in base OpenBSD, but not for wrapping arbitrary code such as an agent running `pip install` and a shell. You want an external wrapper that confines a process that does not cooperate, which is what bubblewrap and Landlock launchers do. OpenBSD has nothing quite like that.
-3. **Missing building blocks.** It has rlimits and `login.conf`, but nothing like cgroups v2 for memory, PIDs and CPU, and no unprivileged user-namespace-style containers. It has no seccomp user-notify equivalent for a supervisor that vets syscalls. Egress control is `pf`, which is good but needs root and is not per-process or per-domain.
-4. **Ecosystem and hardware.** Agents, toolchains, Python wheels, Node and Docker images assume Linux, and CUDA does not run on OpenBSD, so GPU workloads are out. Its hypervisor, `vmm(4)`/`vmd`, is much less mature than KVM, and the microVM tooling (Firecracker, gVisor, Kata) and snapshot/restore are all Linux and KVM.
+2. **Only half of it works from outside.** A wrapper *can* confine a program that never calls `pledge`: the second argument, [`execpromises`](https://man.openbsd.org/pledge.2), sets the promises the next `execve` starts with. But `unveil` does not survive `execve` ("the new program starts running without any unveils"), so there is no external way to limit which *files* an arbitrary binary, such as an agent's `pip install` and shell, can see. On Linux, bubblewrap and Landlock launchers do both from outside.
+3. **Missing building blocks.** It has rlimits and [`login.conf`](https://man.openbsd.org/login.conf.5), but nothing like cgroups v2 for memory, PIDs and CPU, and no unprivileged user-namespace-style containers. It has no seccomp user-notify equivalent for a supervisor that vets syscalls. Egress control is [`pf`](https://man.openbsd.org/pf.4), which is good but needs root and is not per-process or per-domain.
+4. **Ecosystem and hardware.** Agents, toolchains, Python wheels, Node and Docker images assume Linux, and CUDA does not run on OpenBSD, so GPU workloads are out. Its hypervisor, [`vmm(4)`/`vmd`](https://man.openbsd.org/vmm.4), is much less mature than KVM, and the microVM tooling (Firecracker, gVisor, Kata) and snapshot/restore are all Linux and KVM.
 5. **Operations.** Cloud vendors do not offer it the way they offer Linux, so there are few managed options.
 
 ### Where it fits
@@ -238,12 +238,71 @@ OpenBSD works well as the host or guest for a small, auditable control plane or 
 
 ---
 
+## 8. What the stack above still misses
+
+*General knowledge unless linked.*
+
+Sections 1 to 7 are about *confining the process*. Checked against a real agent deployment, they leave gaps that no layer in the table closes, because the damage happens *outside* the box or *through* a channel the box is meant to allow.
+
+**Persistence after the sandbox exits.** The agent may write only inside the project, but the project is full of things that later run *unsandboxed*: `.git/hooks/*`, `.git/config` ([`core.fsmonitor`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor), `core.sshCommand`), `.envrc` for [direnv](https://direnv.net/), `.vscode/tasks.json` and `settings.json`, the `Makefile`, `package.json` scripts, and `.bashrc` if `$HOME` is writable. The confinement is perfect, and the payload runs the next time *you* type `git commit` or open the editor. Deny writes to these paths (Landlock rules or read-only bind mounts over them) and review the diff before running anything outside the sandbox.
+
+**Exfiltration through allowed channels.** A domain allow-list that contains `github.com` also allows pushing your code to an attacker's repo or a gist, and `pypi.org` allows uploading a package. Policy has to be per *destination identity* (this org, this repo, read-only methods), not per domain.
+
+**The model is an exfiltration channel the sandbox cannot see.** Data the agent reads goes into the model's context, and a prompt-injected agent can leak it in its output (for example through a rendered Markdown image URL) without a single syscall from inside the sandbox. Simon Willison's [lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) is the frame: private data, untrusted content and a way to communicate out. Remove one leg, because no sandbox removes it for you.
+
+**Credential brokering instead of credential stripping.** Stripping secrets is the minimum. The stronger pattern is that secrets never enter the sandbox: the egress proxy *injects* a short-lived, narrowly scoped token on the way out, so a compromised agent can only use the credential for what the proxy allows, and cannot copy it.
+
+**Host-side session sockets.** [D-Bus](https://dbus.freedesktop.org/doc/dbus-specification.html), `ssh-agent`, `gpg-agent`, X11 and Wayland, PulseAudio, and the Docker or Podman socket. X11 alone allows keystroke injection into other windows. A fresh network namespace hides *abstract* unix sockets, because they are per network namespace, but any *pathname* socket you bind-mount in is a door. Landlock ABI 9 can gate those.
+
+**Host kernel knobs.** Every tier except the VM shares the kernel, so turn off what agents do not need: [`kernel.unprivileged_bpf_disabled=1`](https://docs.kernel.org/admin-guide/sysctl/kernel.html), [`kernel.io_uring_disabled=2`](https://docs.kernel.org/admin-guide/sysctl/kernel.html), [`vm.unprivileged_userfaultfd=0`](https://docs.kernel.org/admin-guide/sysctl/vm.html), `dev.tty.legacy_tiocsti=0`, a stricter [`kernel.yama.ptrace_scope`](https://docs.kernel.org/admin-guide/LSM/Yama.html), and [`kernel.perf_event_paranoid=3`](https://docs.kernel.org/admin-guide/sysctl/kernel.html) where the distribution supports it. These are cheaper than any seccomp filter, and they cover processes you forgot to wrap.
+
+**Resource exhaustion beyond memory and PIDs.** Disk fill (a `tmpfs` with `size=`, or project quotas), inodes, I/O bandwidth ([`io.max`](https://docs.kernel.org/admin-guide/cgroup-v2.html)), CPU ([`cpu.max`](https://docs.kernel.org/admin-guide/cgroup-v2.html)) and wall-clock time. An agent stuck in a loop is the common case, not the exotic one.
+
+**Lifecycle and reuse.** Sandboxes should be ephemeral and never reused across tenants or tasks, and a warm pool must hand out *clean* snapshots. Reusing a sandbox turns one task's prompt injection into the next task's compromise. Cloned snapshots also share RNG state and ASLR layout unless the guest reseeds ([VM generation ID](https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/random-for-clones.md)), a known microVM snapshot pitfall.
+
+**Audit and approval.** You need a record of what the agent did: [Landlock audit](https://docs.kernel.org/admin-guide/LSM/landlock.html) (ABI 7), seccomp [`SECCOMP_RET_LOG`](https://man7.org/linux/man-pages/man2/seccomp.2.html), the proxy's request log, and human approval for irreversible steps such as push, deploy and delete. Without a log you cannot tell an escape from a bug.
+
+**Testing the sandbox itself.** Run escape tests in CI (the x32, io_uring and `TIOCSTI` cases from section 1, plus something like SandboxEscapeBench from section 6) on every kernel and distribution you ship on, because the same sandbox can fail open elsewhere.
+
+**Side channels and physical access.** [Spectre-class](https://docs.kernel.org/admin-guide/hw-vuln/spectre.html) leaks, SMT sharing and [Rowhammer](https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf) cross every software boundary, the VM one included. The mitigations are scheduling (no SMT sharing between tenants, [core scheduling](https://docs.kernel.org/admin-guide/hw-vuln/core-scheduling.html)) and hardware. Physical attacks on the bus are out of scope for every tier here.
+
+### Could quantum help?
+
+Not with isolation. Every boundary in this post is enforced by page tables, privilege levels, the kernel or the hypervisor, and none of them relies on a hard maths problem, so nothing labelled "quantum" makes them stronger or weaker. Quantum does touch agent sandboxing in a few narrower places:
+
+| Quantum technology | Does it help? | Why |
+|---|---|---|
+| **Quantum computers** ([Shor's algorithm](https://arxiv.org/abs/quant-ph/9508027)) | No, it is a threat | It breaks the RSA and elliptic-curve cryptography that the trust *around* a sandbox depends on. |
+| **Post-quantum cryptography** ([ML-KEM, ML-DSA](https://csrc.nist.gov/projects/post-quantum-cryptography)) | Yes, indirectly | Classical algorithms that keep that trust intact once quantum computers arrive. |
+| **Quantum random number generators** | No | The kernel's CSPRNG is not the weak point. Cloned snapshots are, and a QRNG does not fix them. |
+| **Quantum key distribution** (QKD) | No | It needs dedicated optical links between two sites and says nothing about code on one host. [The NSA](https://www.nsa.gov/Cybersecurity/Quantum-Key-Distribution-QKD-and-Quantum-Cryptography-QC/) and the UK NCSC recommend post-quantum cryptography instead. |
+| **Cloud quantum computers** | It is a *new* sandboxing problem | Tenants sharing one quantum processor leak to each other through crosstalk. |
+
+**What a quantum computer would break.** It would break the cryptography that lets you *trust* the sandbox, not the sandbox itself:
+
+- **Attestation.** SEV-SNP and TDX reports, and NVIDIA's GPU attestation, are signed with ECDSA today. Anyone who can forge them can present a fake confidential VM or GPU, which defeats the "protect tenants from the host operator" model in section 5.
+- **The egress path.** TLS from the agent to the proxy and from the proxy to the registry, plus SSH to git hosts.
+- **Supply-chain signatures.** Container images, snapshots, packages and git commits. [Sigstore](https://docs.sigstore.dev/cosign/key_management/overview/)'s default, for example, is ECDSA P-256.
+
+Symmetric cryptography such as AES-256 and SHA-256 stays safe. [Grover's algorithm](https://arxiv.org/abs/quant-ph/9605043) only halves its effective strength.
+
+**The two halves migrate on different clocks.**
+
+1. **Key exchange is urgent now**, because of *[harvest now, decrypt later](https://www.ncsc.gov.uk/whitepaper/next-steps-preparing-for-post-quantum-cryptography)*: traffic recorded today can be decrypted once a large quantum computer exists. Source code and secrets that cross the egress proxy stay sensitive for years. The fix is mostly an upgrade: OpenSSH 10.0 uses the hybrid [`mlkem768x25519-sha256`](https://www.openssh.com/txt/release-10.0) by default, and OpenSSL 3.5 offers [`X25519MLKEM768`](https://datatracker.ietf.org/doc/draft-ietf-tls-ecdhe-mlkem/) by default. A TLS-intercepting proxy has *two* TLS legs, so check both.
+2. **Signatures can wait, but take longest to move.** A signature cannot be forged after the fact, so it only matters once a quantum computer exists. But attestation keys are rooted in silicon, in CPU and GPU firmware and vendor PKI, so post-quantum attestation needs new hardware generations and cannot be patched in. NIST's draft transition plan ([IR 8547](https://csrc.nist.gov/pubs/ir/8547/ipd)) deprecates 112-bit RSA and ECC after 2030 and disallows quantum-vulnerable algorithms after 2035. Hardware bought for a sandbox fleet today may still be in service by then, so ask vendors about their post-quantum attestation roadmap.
+
+**Randomness: the real problem is not where a QRNG would help.** The RNG risk in this post is the snapshot pitfall from earlier in this section: clones of one microVM snapshot start with the same RNG state. Better entropy hardware does not fix that. Reseeding on restore does, via the VM generation ID.
+
+**The other direction: sandboxing quantum computers.** If agents start submitting circuits to cloud quantum processors, the isolation problem comes back in new hardware. [Crosstalk side channels in multi-tenant quantum computers](https://arxiv.org/html/2412.10507v1) (NDSS 2025) can identify which algorithm a co-located tenant is running, and the [SWAP attack](https://arxiv.org/html/2502.10115v1) can both spy on a neighbouring circuit and corrupt its results. The proposed defences look familiar: do not place tenants next to each other, the way core scheduling keeps tenants off sibling SMT threads. The classical job-submission stack in front of the processor is still sandboxed with everything in this post.
+
+---
+
 ## A decision guide
 
 - **Running an agent on your own laptop, your own code?** The OS-level tier (bubblewrap as in Claude Code, or Landlock plus seccomp as in Codex) is proportionate. Add a filtering proxy if the agent has network.
 - **Running *your users'* code, multi-tenant?** Do not stop at containers. Use a **microVM** (Firecracker, E2B, Kata) or at least **gVisor**, and treat the VM as the boundary. Put OS-level confinement *inside* it as defence in depth.
 - **A narrow, pure-compute tool?** Consider **WASM**: the strongest per-feature boundary and trivially dense.
-- **Whatever you pick:** control egress by domain with audit, strip ambient credentials (environment, metadata, mounted sockets, `~/.ssh`), cap resources with cgroups (fork bombs are cheap), and **fail closed**. A sandbox that silently runs unconfined is the worst outcome.
+- **Whatever you pick:** control egress by domain with audit, strip ambient credentials (environment, metadata, mounted sockets, `~/.ssh`), cap resources with cgroups (fork bombs are cheap), protect the files that run *after* the sandbox exits (git hooks, editor tasks, `.envrc`; see section 8), and **fail closed**. A sandbox that silently runs unconfined is the worst outcome.
 
 ---
 
@@ -255,10 +314,15 @@ Point-in-time (checked October 2026); vendor docs and 2026 analyses, so verify b
 - Papers: [Sandlock: Confining AI Agent Code with Unprivileged Linux Primitives (arXiv:2605.26298)](https://arxiv.org/abs/2605.26298) · [AI Code Sandboxes: A Comparative Security Study (arXiv:2606.08433)](https://arxiv.org/pdf/2606.08433)
 - Guides: [Northflank, how to sandbox AI agents](https://northflank.com/blog/how-to-sandbox-ai-agents) · [digitalapplied, 3 isolation patterns](https://www.digitalapplied.com/blog/ai-agent-sandboxing-isolation-patterns-2026) · [Notes on sandboxing untrusted code](https://gist.github.com/mavdol/2c68acb408686f1e038bf89e5705b28c)
 - Codex: [OpenAI Codex security](https://developers.openai.com/codex/security) · [Codex sandboxing architecture](https://www.mintlify.com/openai/codex/architecture/sandboxing) · [Simon Willison, Codex sandbox investigation](https://simonwillison.net/2025/Nov/9/codex-sandbox-investigation/)
-- Claude Code and Gemini CLI: [Claude Code sandboxing docs](https://code.claude.com/docs/en/sandboxing) · [anthropic sandbox-runtime](https://github.com/Electroid/sandbox-runtime) · [Gemini CLI sandboxing](https://geminicli.com/docs/cli/sandbox/)
-- Landlock: [Landlock news and ABI history](https://landlock.io/news/5/) · [LWN, Landlock IPC scoping](https://lwn.net/Articles/989073/) · [LSM pathname unix-socket scope (2026)](https://kernsec.org/pipermail/linux-security-module-archive/2026-February/055149.html)
+- Claude Code and Gemini CLI: [Claude Code sandboxing docs](https://code.claude.com/docs/en/sandboxing) · [anthropic sandbox-runtime](https://github.com/anthropics/sandbox-runtime) · [Gemini CLI sandboxing](https://geminicli.com/docs/cli/sandbox/)
+- Landlock: [Landlock kernel docs (ABI list)](https://docs.kernel.org/userspace-api/landlock.html) · [Landlock news and ABI history](https://landlock.io/news/5/) · [LWN, Landlock IPC scoping](https://lwn.net/Articles/989073/) · [LSM pathname unix-socket scope (2026)](https://kernsec.org/pipermail/linux-security-module-archive/2026-February/055149.html)
 - Hosted platforms: [E2B vs Daytona vs Modal](https://www.developersdigest.tech/blog/ai-agent-code-sandbox-comparison-2026) · [E2B, Daytona and Firecracker overview](https://www.spheron.network/blog/ai-agent-code-execution-sandbox-e2b-daytona-firecracker/) · [self-hostable comparison](https://bex.co/blog/2026/09/14/ai-agent-sandbox-market-e2b-modal-daytona)
 - Kubernetes: [Running Agents with Agent Sandbox](https://kubernetes.io/blog/2026/03/20/running-agents-on-kubernetes-with-agent-sandbox) · [agent-sandbox docs](https://agent-sandbox.sigs.k8s.io/docs/getting_started/overview/) · [Google OSS blog, why Kubernetes needs an agent standard](https://opensource.googleblog.com/2025/11/unleashing-autonomous-ai-agents-why-kubernetes-needs-a-new-standard-for-agent-execution.html)
 - AWS: [hosting coding agents on Bedrock AgentCore](https://aws.amazon.com/blogs/machine-learning/its-safe-to-close-your-laptop-now-hosting-coding-agents-on-amazon-bedrock-agentcore/) · [CSA, AgentCore as enterprise attack surface](https://labs.cloudsecurityalliance.org/research/csa-research-note-bedrock-agentcore-enterprise-attack-surfac/)
 - GPU isolation: [Northflank, GPU sandboxes](https://northflank.com/blog/gpu-sandboxes) · [GPU isolation fault line: gVisor, Kata, Edera](https://bex.co/blog/2026/09/11/gpu-isolation-fault-line-gvisor-kata-edera) · [NVIDIA Confidential Containers reference architecture](https://docs.nvidia.com/datacenter/cloud-native/confidential-containers/latest/overview.html) · [gVisor GPU support](https://gvisor.dev/docs/user_guide/gpu/) · [Multi-tenant GPU security](https://introl.com/blog/multi-tenant-gpu-security-isolation-strategies-shared-infrastructure-2025) · [Blackwell confidential-computing LLM serving (arXiv:2606.23969)](https://arxiv.org/pdf/2606.23969) · [One GPU per sandbox: Modal vs E2B and Daytona](https://bex.co/blog/2026/09/05/modal-gpu-sandbox-vs-daytona-e2b-cpu-isolation) · [What are GPU sandboxes?](https://www.thundercompute.com/blog/what-are-gpu-sandboxes) · [E2B vs Daytona vs Modal](https://drydock.si/guides/e2b-vs-daytona-vs-modal)
 - Research: [Tyche (arXiv:2507.12364)](https://arxiv.org/pdf/2507.12364) · [AI Sandboxes: threat model and taxonomy (arXiv:2606.18532)](https://arxiv.org/html/2606.18532v1) · [SandboxEscapeBench (arXiv:2603.02277)](https://arxiv.org/html/2603.02277v1) · [Learned capability governance (arXiv:2604.11839)](https://arxiv.org/abs/2604.11839) · [MAC for LLM agents (arXiv:2601.11893)](https://arxiv.org/pdf/2601.11893) · [Unprivileged eBPF dynamic sandboxing (arXiv:2308.01983)](https://arxiv.org/pdf/2308.01983) · [Kernel compartmentalization (arXiv:2404.08716)](https://arxiv.org/pdf/2404.08716) · [Cosmonic, choosing an agent sandbox](https://cosmonic.com/ai-sandbox/choosing-an-agent-sandbox/) · [yeet.cx, sandbox an AI coding agent on Linux](https://yeet.cx/topical-takes/sandbox-ai-coding-agent-linux) · [h5i, sandboxing AI agents landscape](https://h5i.dev/blog/sandboxing-ai-agents-landscape/)
+- Corrections and section 8: [OpenBSD pledge(2)](https://man.openbsd.org/pledge.2) · [OpenBSD unveil(2)](https://man.openbsd.org/unveil.2) · [NVIDIA, confidential computing on H100](https://developer.nvidia.com/blog/confidential-computing-on-h100-gpus-for-secure-and-trustworthy-ai/) · [Confidential LLM inference across CPU and GPU TEEs (arXiv:2509.18886)](https://arxiv.org/pdf/2509.18886) · [Simon Willison, the lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) · [NIST FIPS 203 (ML-KEM)](https://csrc.nist.gov/pubs/fips/203/final) · [NIST FIPS 204 (ML-DSA)](https://csrc.nist.gov/pubs/fips/204/final) · [NIST IR 8547 (draft)](https://csrc.nist.gov/pubs/ir/8547/ipd) · [OpenSSH 10.0 release notes](https://www.openssh.com/txt/release-10.0) · [OpenSSL 3.5 PQC](https://www.helpnetsecurity.com/2025/04/09/openssl-3-5-0-released/) · [Crosstalk side channels in multi-tenant NISQ computers (NDSS 2025)](https://arxiv.org/html/2412.10507v1) · [SWAP attack (arXiv:2502.10115)](https://arxiv.org/html/2502.10115v1)
+
+## Notes
+
+<a id="note-bounce-buffer"></a>1. **Encrypted bounce buffers.** A confidential VM's memory is encrypted by the CPU with a key only the CPU holds, so the GPU cannot DMA into it directly: it would read ciphertext. Instead, the driver inside the VM encrypts the data itself, with a session key agreed with the GPU during attestation, and copies it into a separate, *shared* region of ordinary system memory: the bounce buffer. The GPU fetches it from there over PCIe and decrypts it on the chip, and results come back the same way in reverse. The host, the hypervisor and anyone probing the PCIe bus only ever see ciphertext. The price is an extra copy plus a CPU-side encrypt or decrypt on every transfer, which hurts most for workloads that move a lot of data relative to the compute they do. The longer-term fix is PCIe link encryption (IDE) with TEE-I/O and TDISP, which would let a trusted device DMA straight into the VM's private memory and remove the bounce. <a href="#ref-bounce-buffer">↩</a>
