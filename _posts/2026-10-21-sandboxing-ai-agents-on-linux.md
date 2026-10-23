@@ -59,7 +59,7 @@ Each hole is invisible if you reason about syscalls by name. This is why serious
 
 - **Landlock is maturing into a real agent primitive.** It began filesystem-only (Linux 5.13). ABI 4 (Linux 6.7) added TCP bind and connect rules, ABI 6 (Linux 6.12) added abstract-unix-socket and signal *scoping*, and ABIs 9 and 10 added pathname unix sockets and UDP. That turns Landlock from "restrict files" into "restrict a process tree's whole resource reach", unprivileged and self-applied, which is ideal for a CLI agent that sandboxes itself.
 
-- **[seccomp-notify](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) supervisors put user-space policy in the loop.** Instead of a static allow/deny BPF program, the kernel can *forward* a syscall to a supervisor process that decides at runtime and can even virtualise the effect. The 2026 research prototype **Sandlock** (Wang and Zheng, [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)) combines Landlock and seccomp with a seccomp-notification supervisor to get dynamic network decisions, HTTP-level access control, and [TOCTOU](https://cwe.mitre.org/data/definitions/367.html)-safe inspection of `execve` arguments, all unprivileged, with about 5 ms startup overhead. "Static policy compiled into the kernel, plus a narrow supervisor for the hard cases" is likely where lightweight agent sandboxes head.
+- **[seccomp-notify](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) supervisors put user-space policy in the loop.** Instead of a static allow/deny BPF program, the kernel can *forward* a syscall to a supervisor process that decides at runtime and can even virtualise the effect. The 2026 research prototype **Sandlock** (Wang and Zheng, [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)) combines Landlock and seccomp with a seccomp-notification supervisor to get dynamic network decisions, HTTP-level access control, and [TOCTOU](https://cwe.mitre.org/data/definitions/367.html)-safe inspection of `execve` arguments, all unprivileged, with about 5 ms startup overhead. "Static policy compiled into the kernel, plus a narrow supervisor for the hard cases" is likely where lightweight agent sandboxes head. NVIDIA's OpenShell (section 4) now ships this shape as a product.
 
 - **Orchestration is standardising.** The Kubernetes SIG's **agent-sandbox** (a `Sandbox` [CRD](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) with warm pools, delegating isolation to gVisor or Kata via [`RuntimeClass`](https://kubernetes.io/docs/concepts/containers/runtime-class/)) signals that "a sandbox" is becoming a first-class, schedulable object with stable identity, persistent storage and a sub-second claim from a pre-warmed pool, rather than an ad-hoc `docker run`.
 
@@ -113,6 +113,89 @@ These share a fundamental limit that several guides state: bubblewrap and Seatbe
 - **[Cloudflare Sandbox SDK](https://developers.cloudflare.com/sandbox/).** Built on Cloudflare **Containers**, one sandbox per VM. Its docs recommend per-user sandboxes because everything in one sandbox shares resources. Third parties dispute the exact mechanism, and it is pre-1.0.
 - **[Daytona](https://www.daytona.io/docs/).** Fast-create persistent workspaces with snapshots and forks. Default isolation is reported as containers on the host kernel, with optional **Kata** or Sysbox for stronger isolation. Licensing and status were in flux in 2026, so verify before relying on it.
 - **[Kubernetes `agent-sandbox`](https://agent-sandbox.sigs.k8s.io/docs/getting_started/overview/).** Not an isolator itself: a `Sandbox` CRD plus controller that schedules pods onto **gVisor or Kata** via `RuntimeClass`, with **warm pools** for sub-second starts. It is the orchestration story for self-hosting agent sandboxes at scale.
+
+### NVIDIA OpenShell: the supervisor pattern, productised
+
+[OpenShell](https://github.com/NVIDIA/OpenShell) is NVIDIA's answer to agent sandboxing. It was [announced at GTC on 16 March 2026](https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Ignites-the-Next-Industrial-Revolution-in-Knowledge-Work-With-Open-Agent-Development-Platform/default.aspx) as part of the NVIDIA Agent Toolkit, released under Apache-2.0, and is at version 0.1.x as of October 2026. It sits *between* the two families above: it runs on a laptop like the local CLIs, but it is built as a control plane for *fleets* of agents, like the hosted platforms. It does not replace an agent CLI. It wraps one: the docs and NVIDIA's own write-ups list Claude Code, Codex, OpenCode and GitHub Copilot CLI as workloads.
+
+**Three components.** The [architecture](https://docs.nvidia.com/openshell/latest/about/architecture) splits trust three ways:
+
+- The **gateway** is the control plane. It manages sandbox lifecycle, authenticates users, stores state, delivers policy and attaches credentials ("providers"). It is the only component that signs credentials, and each credential is bound to one sandbox and one run.
+- The **supervisor** is the trusted side of the boundary. It checks every request against policy, resolves DNS, adds credentials, and opens approved connections itself. It "makes the decisions".
+- The **sandbox** shares the boundary with the untrusted agent. It launches the agent as a child process, identifies which program is making each call, and forwards TCP and DNS to the supervisor. It "never makes policy decisions".
+
+The supervisor and sandbox talk over one mutually authenticated HTTP/2 connection, carried over a unix socket (Docker, Podman), TCP (Kubernetes) or [vsock](https://man7.org/linux/man-pages/man7/vsock.7.html) (microVM).
+
+**The kernel mechanisms are the ones in this post.** Per the [support matrix](https://docs.nvidia.com/openshell/latest/about/support-matrix), launching a sandbox requires:
+
+- **Landlock ABI 3 or newer** (Linux 6.2) for the filesystem policy.
+- **seccomp user notification**, including nested filters and [`SECCOMP_IOCTL_NOTIF_ADDFD`](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) with `SECCOMP_ADDFD_FLAG_SEND`, used to intercept TCP opens and DNS queries. `ADDFD` is how a supervisor installs a file descriptor it opened into the confined process, the same fd-delegation idea as Capsicum's broker in section 7.
+- **Reading the child's memory** with [`process_vm_readv`](https://man7.org/linux/man-pages/man2/process_vm_readv.2.html) or `/proc/<pid>/mem`, so the supervisor can inspect syscall arguments.
+- **[`SO_BINDTODEVICE`](https://man7.org/linux/man-pages/man7/socket.7.html)** to bind workload sockets to loopback.
+
+The agent runs as one non-root user with no Linux capabilities. If any requirement is missing, launch **fails closed**. If the supervisor connection drops, the sandbox *freezes* the agent, and only the same supervisor process can resume it. That is exactly the "static policy compiled into the kernel, plus a narrow supervisor for the hard cases" shape that section 2 predicted from the Sandlock research, shipped by a major vendor.
+
+**An outer fence, so the supervisor is the only way out.** Seccomp interception alone is porous (section 1's io_uring trap), so each runtime also removes direct network access using its own tools:
+
+| Runtime driver | Where the supervisor runs | How direct egress is blocked | Kernel |
+|---|---|---|---|
+| Docker | its own container | workload container has `network=none` | shared with host |
+| Podman (rootless) | its own container | workload container has networking off | shared with host |
+| Kubernetes | its own pod | `NetworkPolicy` allows only the supervisor; the CNI must enforce it | shared, unless the pod uses a Kata `RuntimeClass` |
+| MicroVM ([libkrun](https://github.com/containers/libkrun)) | host process | guest has no network device | its own, via KVM or Apple Hypervisor.framework |
+
+This maps one-to-one onto section 3's tiers. The container drivers are the shared-kernel tier with a better egress design, and the microVM driver is the second-kernel tier. The microVM driver is opt-in, never auto-detected, and the docs do not recommend one driver for untrusted code, so for strangers' code choose the VM driver (or Kata on Kubernetes) deliberately. On macOS the Linux kernel controls run inside Docker Desktop's VM. The Kubernetes driver schedules pods through the same [Agent Sandbox](https://agent-sandbox.sigs.k8s.io/docs/getting_started/overview/) controller described above.
+
+**Policy: one YAML file, deny by default.** A [policy](https://docs.nvidia.com/openshell/latest/how-it-works/policies/overview) has up to five sections: `filesystem_policy` (read-only and read-write paths, enforced by Landlock), `landlock`, `process` (the user and group), `network_policies` and `network_middlewares`. Filesystem, Landlock and process settings are fixed at startup; network rules can change while the sandbox runs. Every outbound connection is denied unless a rule allows it. [Network rules](https://docs.nvidia.com/openshell/latest/how-it-works/policies/network-rules) go well past a domain allow-list:
+
+- **Per binary.** A rule names the executables allowed to use it, matched by the real path the kernel reports. OpenShell hashes each executable the first time it connects and denies later connections if the file changes. Child processes of a listed binary inherit the rule.
+- **Per HTTP method and path.** With `protocol: rest`, rules match method, path and query, with presets such as `access: read-only` (`GET`, `HEAD`, `OPTIONS`). To see inside HTTPS, the supervisor **terminates TLS** unless an endpoint sets `tls: skip`.
+- **DNS through the supervisor.** The sandbox gets placeholder addresses with short TTLs and no search domains, which closes the DNS covert channel from section 1.
+- **SSRF guard rails.** Private addresses are blocked by default, and loopback, link-local and unspecified destinations, including the metadata endpoint `169.254.169.254`, are never authorised.
+
+For example, read-only GitHub API access for `curl` and nothing else:
+
+```yaml
+github_readonly:
+  endpoints:
+    - host: api.github.com
+      port: 443
+      protocol: rest
+      enforcement: enforce
+      access: read-only
+  binaries:
+    - path: /usr/bin/curl
+```
+
+**Credentials never enter the sandbox.** [Providers](https://docs.nvidia.com/openshell/latest/how-it-works/providers/overview) map a service to a stored credential, and the supervisor adds it only to requests bound for approved endpoints. The sandbox holds no gateway key, gateway token or provider secret. This is the credential brokering recommended in section 8.
+
+**Policy review with a solver.** Two features turn section 6's "policy matters as much as mechanism" into tooling:
+
+- The **[policy advisor](https://docs.nvidia.com/openshell/latest/how-it-works/policies/advisor)**. When a request is denied, the agent gets an explanation and can propose a narrow rule (host, port, binary, method, path). A proposal never changes policy on its own: a human approves or rejects it from the CLI, and a rejection reason goes back to the agent so it can propose something narrower. An opt-in `auto` mode exists.
+- The **[policy prover](https://docs.nvidia.com/openshell/latest/how-it-works/policies/prover)**, which uses an [SMT solver](https://smt-lib.org/) to check that a candidate policy stays within a boundary policy you write, and that a proposed rule adds no risky reach. It reports findings such as `link_local_reach`, `credential_reach_expansion` and `l7_bypass_credentialed` (a credential reachable by traffic the supervisor cannot inspect). Any finding forces human review, even in `auto` mode. The prover answers `unsupported` rather than guessing for GraphQL, MCP, WebSocket and JSON-RPC, and a pass means only "within the boundary in the checked areas", not "safe".
+
+**Sentry: a monitor the host cannot reach.** On 28 September 2026 NVIDIA wrapped OpenShell into an "Open Agent Safety Platform" with **Sentry**, a monitoring and enforcement layer that runs on [BlueField-4](https://www.nvidia.com/en-us/networking/products/data-processing-unit/) DPUs instead of on the machine running the agent. The premise is that "an agent that deviates from its intended task cannot be relied upon to govern itself": if the agent escapes the shared kernel, a monitor on the network card is still in the path. It is an answer to this post's core problem (one shared kernel), but it needs NVIDIA data-centre hardware, is not open source, and the adoption claims around it come from NVIDIA and its partners.
+
+**How it measures against this post.**
+
+| Theme in this post | OpenShell's answer |
+|---|---|
+| Shared kernel (section 1) | Unchanged for the container drivers; solved by the opt-in microVM driver or Kata. Sentry adds out-of-band monitoring on DPU hardware. |
+| Egress is the real prize (section 1) | Supervisor-only egress, deny by default, per-binary and per-method rules, TLS termination, supervisor-side DNS, metadata always blocked. The strongest part of the design. |
+| Exfiltration through allowed channels (section 8) | Partly: read-only REST rules stop pushes to `github.com`, but only for traffic it can inspect (`tls: skip` and non-HTTP protocols bypass L7 rules). |
+| Credential brokering (section 8) | Yes, by design. |
+| Fail closed (decision guide) | Yes at launch and on supervisor loss; check the `landlock` section's `compatibility` setting, where only `hard_requirement` aborts startup when Landlock rules cannot be applied. |
+| Least privilege per task (section 6) | Advisor proposals plus prover checks plus human approval. |
+| Persistence after exit (section 8) | Not addressed: the workspace persists across stop and start, so protect hooks and editor configs yourself. |
+| The model as an exfiltration channel (section 8) | Not addressed by the sandbox; no sandbox can see what the model writes. |
+| GPUs (section 5) | `--gpu` via NVIDIA [CDI](https://github.com/cncf-tags/container-device-interface) devices on the container drivers (the shared host driver), one GPU on the microVM driver. |
+
+**Caveats worth knowing before relying on it:**
+
+- **REST rules default to audit.** An endpoint's `enforcement` defaults to `audit`, which *logs* method and path violations and lets them through. Set `enforcement: enforce` for the read-only rules to mean anything. Host, port and binary matching is still deny by default.
+- **Binary identity is path plus hash, not intent.** A rule for `/usr/bin/python3` or `/bin/bash` covers *any* script that interpreter runs, and children inherit the rule. Keep interpreters out of rules that carry credentials.
+- **TLS termination puts the supervisor in the trust path.** That is what makes L7 rules possible, and it also makes the supervisor a high-value target.
+- **It is 0.1 software.** The docs change quickly and several details (Landlock compatibility defaults, global policies) are not fully documented yet.
 
 ### The pattern across all of them
 
@@ -200,7 +283,15 @@ For a GPU SaaS with mutually untrusted tenants: dedicated-GPU VMs with VFIO (Kat
 
 1. **The shared kernel is the weak point.** The long-term answers either avoid it (microVMs, confidential VMs) or shrink it (Landlock-style scoping, compartmentalization, memory safety).
 2. **Policy will matter as much as mechanism.** Static allow-lists overprovision, so least privilege *per task*, possibly learned, is where the agent-specific papers are going.
-3. **Composable isolation looks like the most promising architecture.** Tyche-style designs would let a tenant nest its own boundary instead of trusting the provider's.
+3. **Composable isolation is the most interesting *research* direction, not a shipping one.** Tyche-style designs would let a tenant nest its own boundary instead of trusting the provider's, but Tyche itself is academic, and no production system offers recursive, tenant-controlled nesting with attestation of the whole stack. What ships today are fixed, one-level versions of the idea, each a small trusted layer that the layer below cannot see into:
+   - **Confidential-VM paravisors.** Microsoft's open-source [OpenHCL](https://openvmm.dev/guide/user_guide/openhcl.html) runs inside Azure confidential VMs at a higher privilege level than the guest OS, on AMD SEV-SNP and Intel TDX, out of the host's reach. Microsoft uses it for confidential VMs and Trusted Launch VMs (with a virtual TPM) on Azure.
+   - **SEV-SNP privilege levels.** [VMPLs](https://www.amd.com/content/dam/amd/en/documents/epyc-business-docs/white-papers/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more.pdf) split a confidential VM into up to four hardware privilege levels, so a small service module such as [COCONUT-SVSM](https://github.com/coconut-svsm/svsm) can provide services like a virtual TPM, isolated from the guest OS. COCONUT-SVSM has published no releases yet.
+   - **TDX partitioning.** One [Intel TDX](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html) confidential VM can host nested VMs while the host stays outside the trust boundary. In practice cloud providers use it for their own paravisors rather than exposing it to tenants.
+   - **[AWS Nitro Enclaves](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html).** A tenant carves an isolated, attested enclave out of its own instance, and the parent instance cannot see inside. AWS's Nitro hypervisor is still trusted, and there is only one level.
+   - **[Android pKVM](https://source.android.com/docs/core/virtualization/architecture).** A small hypervisor runs below a *deprivileged* host kernel, so protected VMs are safe from the host OS. The platform defines the domains, not the tenant.
+   - **[Confidential Containers](https://confidentialcontainers.org/).** Kata pods inside confidential VMs, so a pod need not trust the node. It composes existing pieces rather than offering a unified primitive.
+
+   [Arm CCA](https://www.arm.com/architecture/security-features/arm-confidential-compute-architecture) brings "realms" with the same aim to Arm and is the next place to watch.
 
 Gaps: I found no paper proposing microVM snapshots specifically for agent isolation, and none on seL4- or CHERI-based agent sandboxes.
 
@@ -330,6 +421,8 @@ Point-in-time (checked October 2026); vendor docs and 2026 analyses, so verify b
 - AWS: [hosting coding agents on Bedrock AgentCore](https://aws.amazon.com/blogs/machine-learning/its-safe-to-close-your-laptop-now-hosting-coding-agents-on-amazon-bedrock-agentcore/) · [CSA, AgentCore as enterprise attack surface](https://labs.cloudsecurityalliance.org/research/csa-research-note-bedrock-agentcore-enterprise-attack-surfac/)
 - GPU isolation: [Northflank, GPU sandboxes](https://northflank.com/blog/gpu-sandboxes) · [GPU isolation fault line: gVisor, Kata, Edera](https://bex.co/blog/2026/09/11/gpu-isolation-fault-line-gvisor-kata-edera) · [NVIDIA Confidential Containers reference architecture](https://docs.nvidia.com/datacenter/cloud-native/confidential-containers/latest/overview.html) · [gVisor GPU support](https://gvisor.dev/docs/user_guide/gpu/) · [Multi-tenant GPU security](https://introl.com/blog/multi-tenant-gpu-security-isolation-strategies-shared-infrastructure-2025) · [Blackwell confidential-computing LLM serving (arXiv:2606.23969)](https://arxiv.org/pdf/2606.23969) · [One GPU per sandbox: Modal vs E2B and Daytona](https://bex.co/blog/2026/09/05/modal-gpu-sandbox-vs-daytona-e2b-cpu-isolation) · [What are GPU sandboxes?](https://www.thundercompute.com/blog/what-are-gpu-sandboxes) · [E2B vs Daytona vs Modal](https://drydock.si/guides/e2b-vs-daytona-vs-modal)
 - Research: [Tyche (arXiv:2507.12364)](https://arxiv.org/pdf/2507.12364) · [AI Sandboxes: threat model and taxonomy (arXiv:2606.18532)](https://arxiv.org/html/2606.18532v1) · [SandboxEscapeBench (arXiv:2603.02277)](https://arxiv.org/html/2603.02277v1) · [Learned capability governance (arXiv:2604.11839)](https://arxiv.org/abs/2604.11839) · [MAC for LLM agents (arXiv:2601.11893)](https://arxiv.org/pdf/2601.11893) · [Unprivileged eBPF dynamic sandboxing (arXiv:2308.01983)](https://arxiv.org/pdf/2308.01983) · [Kernel compartmentalization (arXiv:2404.08716)](https://arxiv.org/pdf/2404.08716) · [Cosmonic, choosing an agent sandbox](https://cosmonic.com/ai-sandbox/choosing-an-agent-sandbox/) · [yeet.cx, sandbox an AI coding agent on Linux](https://yeet.cx/topical-takes/sandbox-ai-coding-agent-linux) · [h5i, sandboxing AI agents landscape](https://h5i.dev/blog/sandboxing-ai-agents-landscape/)
+- NVIDIA OpenShell: [repository](https://github.com/NVIDIA/OpenShell) · [architecture](https://docs.nvidia.com/openshell/latest/about/architecture) · [support matrix](https://docs.nvidia.com/openshell/latest/about/support-matrix) · [sandbox runtimes](https://docs.nvidia.com/openshell/latest/how-it-works/sandboxes/runtimes) · [policies](https://docs.nvidia.com/openshell/latest/how-it-works/policies/overview) · [network rules](https://docs.nvidia.com/openshell/latest/how-it-works/policies/network-rules) · [policy advisor](https://docs.nvidia.com/openshell/latest/how-it-works/policies/advisor) · [policy prover](https://docs.nvidia.com/openshell/latest/how-it-works/policies/prover) · [NVIDIA press release, Agent Toolkit and OpenShell (16 March 2026)](https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Ignites-the-Next-Industrial-Revolution-in-Knowledge-Work-With-Open-Agent-Development-Platform/default.aspx) · [Let's Data Science, Open Agent Safety Platform and Sentry](https://letsdatascience.com/news/nvidia-launches-hardware-backed-ai-agent-safety-platform-7ff43d11) · [NVIDIA, OpenShell works with Claude Code](https://perspectives.nvidia.com/nvidia-openshell/agent-sandbox-works-claude-code-out-of-box/)
+- Production approximations of composable isolation: [OpenHCL](https://openvmm.dev/guide/user_guide/openhcl.html) · [OpenVMM repository](https://github.com/microsoft/openvmm) · [AMD SEV-SNP white paper (VMPLs)](https://www.amd.com/content/dam/amd/en/documents/epyc-business-docs/white-papers/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more.pdf) · [COCONUT-SVSM](https://github.com/coconut-svsm/svsm) · [Azure confidential VMs](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-vm-overview) · [AWS Nitro Enclaves](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html) · [Android pKVM architecture](https://source.android.com/docs/core/virtualization/architecture) · [Confidential Containers](https://confidentialcontainers.org/) · [Arm CCA](https://www.arm.com/architecture/security-features/arm-confidential-compute-architecture)
 - Capsicum: [capsicum(4)](https://man.freebsd.org/capsicum(4)) · [cap_enter(2)](https://man.freebsd.org/cap_enter(2)) · [cap_rights_limit(2)](https://man.freebsd.org/cap_rights_limit(2)) · [libcasper(3)](https://man.freebsd.org/libcasper(3)) · [Capsicum: practical capabilities for UNIX (USENIX Security 2010)](https://www.cl.cam.ac.uk/research/security/capsicum/papers/2010usenix-security-capsicum-website.pdf) · [Capsicum for Linux](https://github.com/google/capsicum-linux)
 - Corrections and section 8: [OpenBSD pledge(2)](https://man.openbsd.org/pledge.2) · [OpenBSD unveil(2)](https://man.openbsd.org/unveil.2) · [NVIDIA, confidential computing on H100](https://developer.nvidia.com/blog/confidential-computing-on-h100-gpus-for-secure-and-trustworthy-ai/) · [Confidential LLM inference across CPU and GPU TEEs (arXiv:2509.18886)](https://arxiv.org/pdf/2509.18886) · [Simon Willison, the lethal trifecta](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/) · [NIST FIPS 203 (ML-KEM)](https://csrc.nist.gov/pubs/fips/203/final) · [NIST FIPS 204 (ML-DSA)](https://csrc.nist.gov/pubs/fips/204/final) · [NIST IR 8547 (draft)](https://csrc.nist.gov/pubs/ir/8547/ipd) · [OpenSSH 10.0 release notes](https://www.openssh.com/txt/release-10.0) · [OpenSSL 3.5 PQC](https://www.helpnetsecurity.com/2025/04/09/openssl-3-5-0-released/) · [Crosstalk side channels in multi-tenant NISQ computers (NDSS 2025)](https://arxiv.org/html/2412.10507v1) · [SWAP attack (arXiv:2502.10115)](https://arxiv.org/html/2502.10115v1)
 
