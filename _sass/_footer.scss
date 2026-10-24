@@ -2,42 +2,43 @@
  * Footer styles
  ******************************************************************************/
 
-footer.fixed-bottom {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1030;
-  background-color: var(--global-hover-color);
-  border-top: 1px solid var(--global-hover-color);
+footer.site-footer {
+  margin-top: 4rem;
+  background-color: var(--global-footer-bg-color);
+  background-image: var(--global-footer-bg-image);
+  // Thin warm line on top, echoing the bold-text highlight.
+  border-top: 2px solid var(--global-footer-accent-color);
+  color: #ffffff;
   font-size: 0.8rem;
-  opacity: 0.97;
 
   .container {
-    color: #ffffff;
-    padding-top: 10px;
-    padding-bottom: 9px;
+    padding-top: 1.5rem;
+    padding-bottom: 1.25rem;
     text-align: center;
   }
 
-  a {
-    color: #ffffff;
+  .footer-social {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+    font-size: 1.05rem;
 
-    &:hover {
-      color: var(--global-theme-color-light, #e8f6ed);
-      text-decoration: none;
+    a {
+      padding: 0.2rem 0.4rem;
     }
   }
-}
 
-footer.sticky-bottom {
-  border-top: 1px solid var(--global-divider-color);
-  padding-top: 40px;
-  padding-bottom: 40px;
-  font-size: 0.9rem;
+  .footer-text {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+  }
 
-  .container {
-    text-align: center;
-    color: var(--global-hover-color);
+  a,
+  a:hover,
+  a:focus-visible {
+    color: #ffffff;
+    text-decoration: none;
   }
 }

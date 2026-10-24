@@ -1,4 +1,6 @@
-## Go self fork/exec in Linux/MacOS and possibly BSD
+---
+title: "Go fork/exec"
+---
 
 Go's [`os`](https://golang.org/pkg/os/) package exposes a convenient way to fork and exec.
 Since, I found this trick handy, I thought I might share it. 

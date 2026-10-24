@@ -1,4 +1,6 @@
-# Mini-primer on tcpdump
+---
+title: "A tcpdump primer"
+---
 
 You are here and that's great! Let's learn to dump 'em packets ;)
 
@@ -7,7 +9,7 @@ It should work on MacOS, Linux, and any number of *BSDs. The `$` denotes the she
 The last time I checked Windows (Linux subsystem), it did not support `tcpdump`. Call
 your Microsoft rep to get it on Linux subsystem! :)
 
-## General syntax
+## 🧭 General syntax
 
 To keep simple things simple, i'll begin with the format of `tcpdump`
 
@@ -16,14 +18,14 @@ To keep simple things simple, i'll begin with the format of `tcpdump`
 Options are things like e.g. `-i any -nn -A -v`.
 Expressions are things like e.g. `dst port 9999` and should be single quoted e.g. `'host www.example.com'`.
 
-### A word about un-specified interface names
+### ✨ A word about un-specified interface names
 
 If the interface option is left unspecified (`-i`), then based on the implementation, 
 `tcpdump` will choose the default interface available. On Linux and FreeBSD this is usually 
 the first available network interface such as `eth0`, `re0`. On macOS, this is a pseudo 
 interface `PKTAP` which captures on all available interfaces.
 
-### Simple packet dumping
+### 📡 Simple packet dumping
 
 To trace packets on network interface `eth0` and **not** perform any DNS name resolution `-n` and give super brief info of the packet traces `-q`
 
@@ -32,7 +34,7 @@ To trace packets on network interface `eth0` and **not** perform any DNS name re
 I recommend using the `-n` option for packet tracing because the packet dumps are much cleaner
 as there would be no name resolution and thus no DNS traffic to pollute the capture.
 
-### Packet dumping with simple filter expressions
+### 📡 Packet dumping with simple filter expressions
 
 To filter on host www.example.com on **all** network interface.
 
@@ -46,7 +48,7 @@ To specify expression to filter on destination host `1.2.3.4` matching all proto
 
     $ tcpdump -n 'dst host 1.2.3.4'
 
-### Gotchas
+### 📌 Gotchas
     
 One of the important thing to consider is positioning of options. 
 On some `tcpdump` implementations, the network interface and the other options come 
@@ -79,7 +81,7 @@ Some `tcpdump` implementations support listening on all interfaces via `-i any`.
     listening on any, link-type PKTAP (Apple DLT_PKTAP), capture size 262144 bytes    
 
 
-### A little complex filter expressions (but not that complex :)
+### 🧩 A little complex filter expressions (but not that complex :)
   
 To filter on source port 9999, protocol `tcp` on network interface `eth0`
 
@@ -94,7 +96,7 @@ To dump `tcp` traffic on port 8080 using `-A` which prints the packets' content 
     $ tcpdump -n -i eth0 -A 'tcp and dst port 8080'
 
 
-### Save/Read packet captures
+### 📡 Save/Read packet captures
 
 To write out `icmp` packet traces to a `pcap` formatted file (it can get quite large)
 
@@ -104,7 +106,7 @@ To read in `pcap` packet traces (alternatively, `tshark` or `wireshark` is great
 
     $ tcpdump -r /tmp/icmp-trace.pcap    
 
-### The mighty-little BPF monster
+### 🐝 The mighty-little BPF monster
 
 The `tcpdump` expressions can be viewed as a BPF instructions using the `-d` option
   
@@ -126,7 +128,7 @@ From [BPF Performance Tools: Linux System and Application Observability](http://
 > BPF works in an interesting way: A filter expression is defined by the end user using an instruction set for a BPF virtual machine (sometimes called the BPF bytecode) and then passed to the kernel for execution by an interpreter. This allows filtering to occur in the kernel level without costly copies of each packet going to the user-level processes, improving the performance of packet filtering, as used by tcpdump(8). It also provides safety, as filters from user space can be verified as being safe before execution. Given that early packet filtering had to occur in kernel space, safety was a hard requirement. ![tcpdump](/assets/images/02fig02.jpg)
 
 
-### More filter expressions :)
+### 💡 More filter expressions :)
 
 To trace all udp packets in a destination port range 50000-65535 (inclusive)
 
@@ -156,36 +158,36 @@ Capture packets indefinitely and rotate every 10 seconds
 
     $ tcpdump -i eth0 -G 10 -w dump-%S.pcap 'dst port 80'
 
-## Extracted and adapted from the `tcpdump` man page
+## 🔎 Extracted and adapted from the `tcpdump` man page
 
 The `tcpdump` man page is a gold mine. I have spent a long time reading it and every single time I find something new in it.
 Following are some of the handy ones:
 
-### TCP conversation
+### 🌐 TCP conversation
 
 To print the start and end packets (the SYN and FIN packets) of each TCP conversation that involves a non-local host.
 
     $ tcpdump -n -i eth0 'tcp[tcpflags] & (tcp-syn|tcp-fin) != 0 and not src and dst net 127.0.0.1'
 
-### Lets do some webops yo!
+### 🧭 Lets do some webops yo!
 
 To print all IPv4 HTTP packets to and from port 80, i.e. print only packets  that  contain  data, not, for example, SYN and FIN packets and ACK-only packets.
 
     $ tcpdump -n -i eth0 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
 
-### More goodies
+### ✨ More goodies
 
 To print IP packets longer than 576 bytes sent through gateway snup:
 
     $ tcpdump -n -i eth0 'gateway snup and ip[2:2] > 576'
 
-### Let there be broad/multi-casts
+### 📌 Let there be broad/multi-casts
 
 To print IP broadcast or multi-cast packets that were not sent via  Ethernet broadcast or multicast:
 
     $ tcpdump -n -i eth0 'ether[0] & 1 = 0 and ip[16] >= 224'
 
-### And let there be ICMP echo req/reply gods
+### 🧩 And let there be ICMP echo req/reply gods
 
 To print all ICMP packets that are not an ICMP echo request/reply (e.g. not ping packets):
 

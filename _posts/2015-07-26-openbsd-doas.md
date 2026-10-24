@@ -1,4 +1,6 @@
-## OpenBSD doas (or how I use sudo)
+---
+title: "OpenBSD doas"
+---
 
 *Note: I wrote this post in July 2015 on the System Administrator Appreciation Day. I got a lot of web search hits on this page at the 
 time so I am resurrecting it from my archive in the hope that it might help others*
@@ -20,7 +22,7 @@ way to do this in OpenBSD 6.7. I had it in my backlog to update this post so her
 There's some more example at https://www.vultr.com/docs/introduction-to-doas-on-openbsd
 
 
-### Super relaxed permission 
+### 🚧 Super relaxed permission 
 
     permit nopass keepenv { ENV PS1 SSH_AUTH_SOCK } :wheel
     
@@ -28,19 +30,19 @@ Permit users in the `wheel` group to execute commands as `root` user (defaults t
 Allow running everything *without* requiring password and preserve the environment variables ENV, PS1 and SSH_AUTH_SOCK
 when the elevation occurs.
 
-### Do prompt the user for a valid password (`nopass` is not present)
+### ✨ Do prompt the user for a valid password (`nopass` is not present)
     
     permit keepenv {ENV PS1 SSH_AUTH_SOCK} :wheel
     
-### Allow the user bob to run /bin/sh as fred 
+### 📌 Allow the user bob to run /bin/sh as fred 
 
     permit bob as fred cmd /bin/sh
     
-### Disallow users in wheel group to do anything:
+### 🧩 Disallow users in wheel group to do anything:
     
     deny :wheel
 
-### Note
+### 📒 Note
 
 The rules in `doas.conf` are read top-down. So, if you have a `deny :wheel` followed by `permit nopass :wheel` on the next line, 
 then the `permit` rule will take effective precedence.

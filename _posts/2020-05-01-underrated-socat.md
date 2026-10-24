@@ -1,4 +1,6 @@
-# Socat
+---
+title: "Underrated socat"
+---
 
 Socat is one of the most underrated software in Linux. It is a tool to help in debugging and applying network 
 interops in ways the original author of a software probably had not anticipated. The author of `socat` describes it as
@@ -6,9 +8,9 @@ _multipurpose relay_ software (socket cat). People lovingly synonymize it as _li
 across `socat` when I was working as a pentester back in the day (I have worn many hats in the past) whilst 
 trying to work my way through protocol debugging.
   
-TL;DR? Refer to the [commands](#socat the swiss-army knife) instead.
+TL;DR? Refer to the [commands](#-socat-the-swiss-army-knife) instead.
 
-## The socat story
+## 🔌 The socat story
 
 So, why would you need socat? Follow through on the fictionalised story below <sup>1</sup>.
 
@@ -29,7 +31,7 @@ That is, the TCP endpoint to the client will look like `server.ip.address:80`.
 
 On the server, Bob, the sysadmin will spin up `socat` and run a TCP relay from the listening TCP port `80` to the local
 loopback address' TCP port `3450`. Thus, Bob, the sysadmin will run this on the server:
-```bash
+```console
 $ socat -v tcp-listen:80,reuseaddr,fork tcp-connect:127.0.0.1:3450
 ```
 
@@ -41,79 +43,79 @@ continue to service new TCP connections.
 Until a permanent solution is in place<sup>2</sup>, Bob can now proceed to block non-standard TCP port to ingress the
 server.
 
-## socat the swiss-army knife
+## 🔌 socat the swiss-army knife
 
 An exhaustive list of `socat` capabilities is documented in the manual page for `socat(1)` and it is 
 still the authoritative source. Below are some common ones one might need.
 
-### Relay TCP to TCP
-```bash
+### 🌐 Relay TCP to TCP
+```console
 $ socat -v tcp-listen:80,reuseaddr,fork tcp-connect:172.16.2.10:8080
 ```
 
-### Relay TCP to UDP
-```bash
+### 🌐 Relay TCP to UDP
+```console
 $ socat -v tcp-listen:80,reuseaddr,fork udp-connect:172.16.2.10:8080
 ```
 
-### Relay UDP to UDP
-```bash
+### 🌐 Relay UDP to UDP
+```console
 $ socat -v udp-listen:80,reuseaddr,fork udp-connect:172.16.2.10:8080
 ```
 
-### Relay UDP to TCP
-```bash
+### 🌐 Relay UDP to TCP
+```console
 $ socat -v udp-listen:80,reuseaddr,fork tcp-connect:172.16.2.10:8080
 ```
 
-### Relay TCP to Unix Domain Sockets
-```bash
+### 🔌 Relay TCP to Unix Domain Sockets
+```console
 $ socat -v tcp-listen:80,reuseaddr,fork unix-client:/var/run/uds.sock
 ```
 
-### Relay Unix Domain Sockets to TCP
-```bash
+### 🔌 Relay Unix Domain Sockets to TCP
+```console
 $ socat -v -v unix-listen:/var/run/uds.sock,reuseaddr,fork tcp-connect:172.16.2.10:80
 ```
 
-### Relay UDP to Unix Domain Sockets
-```bash
+### 🔌 Relay UDP to Unix Domain Sockets
+```console
 $ socat -v udp-listen:80,reuseaddr,fork unix-client:/var/run/uds.sock
 ```
 
-### Relay Unix Domain Sockets to UDP
-```bash
+### 🔌 Relay Unix Domain Sockets to UDP
+```console
 $ socat -v -v unix-listen:/var/run/uds.sock,reuseaddr,fork udp-connect:172.16.2.10:80
 ```
 
-### Relay SCTP to Unix Domain Sockets
-```bash
+### 🔌 Relay SCTP to Unix Domain Sockets
+```console
 $ socat -v sctp-listen:80,reuseaddr,fork unix-client:/var/run/uds.sock
 ```
 
-### Relay Unix Domain Sockets to SCTP
-```bash
+### 🔌 Relay Unix Domain Sockets to SCTP
+```console
 $ socat -v -v unix-listen:/var/run/uds.sock,reuseaddr,fork sctp-connect:172.16.2.10:80
 ```
 
-### Tunnel Unix Domain Socket packets inside TLS relay
+### 🔏 Tunnel Unix Domain Socket packets inside TLS relay
 Please avoid setting `verify=0` on production if you can.
-```bash
+```console
 $ socat -v                                          \
     unix-listen:/var/run/uds.sock,reuseaddr,fork    \
     openssl:server.domain.name:443,certificate=cert.pem,cafile=cert.pem,verify=1,key=key.pem,commonname=server.domain.name
 ```
 
-### Relay TLS packets to Unix Domain Socket (aka virtual patching)
-```bash
+### 🧊 Relay TLS packets to Unix Domain Socket (aka virtual patching)
+```console
 $ socat -v                                                                                             \
     openssl-listen:443,reuseaddr,pf=ip4,fork,key=key.pem,cafile=cert.pem,cert=cert.pem,method=TLS1.2   \
     unix-client:/var/run/uds.sock
 ```
 
-### Capture TLS packets to /dev/stdout for quick debugging
+### 🔏 Capture TLS packets to /dev/stdout for quick debugging
 Please avoid setting `verify=0` on production if you can.
-```bash
+```console
 $ socat -v                                                                                       				\
     openssl-listen:443,reuseaddr,pf=ip4,fork,key=key.pem,cafile=cert.pem,cert=cert.pem,verify=0,commonname=server.domain.name	\
     file:/dev/stdout

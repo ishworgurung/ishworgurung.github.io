@@ -1,0 +1,22 @@
+{% comment %}
+  Local override of al_folio_core's latest_posts include: a compact list that
+  skips the "Interesting links" round-ups so it shows written posts only.
+{% endcomment %}
+{% assign latest_posts = "" | split: "" %}
+{% for item in site.posts %}
+  {% unless item.slug contains 'interesting-links' %}
+    {% assign latest_posts = latest_posts | push: item %}
+  {% endunless %}
+{% endfor %}
+{% assign latest_posts_limit = page.latest_posts.limit | default: latest_posts.size %}
+<ol class="latest">
+  {% for item in latest_posts limit: latest_posts_limit %}
+    {% assign words = item.content | strip_html | number_of_words %}
+    {% assign minutes = words | times: 1.0 | divided_by: site.words_per_minute | ceil | at_least: 1 %}
+    <li class="latest-item">
+      <time class="latest-date" datetime="{{ item.date | date_to_xmlschema }}">{{ item.date | date: '%b %Y' }}</time>
+      <a class="latest-title" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+      <span class="latest-meta">{{ minutes }} min</span>
+    </li>
+  {% endfor %}
+</ol>

@@ -23,6 +23,9 @@ figure.highlight {
 }
 
 pre {
+  // Every code block (plain or highlighted, any language) is sized relative to
+  // the surrounding text, matching inline code.
+  font-size: 0.9em;
   color: var(--global-text-color);
   background-color: var(--global-code-bg-color);
   border-radius: 6px;
@@ -46,7 +49,7 @@ pre {
 
 code {
   color: var(--global-text-color);
-  background-color: var(--global-code-bg-color);
+  background-color: var(--global-inline-code-bg-color);
   border-radius: 3px;
   padding: 3px 3px;
 
@@ -56,7 +59,9 @@ code {
 }
 
 :not(pre) > code {
-  font-size: 0.82em;
+  // Relative to the surrounding text, so code in headings, tables and small
+  // print scales with it. JetBrains Mono's tall x-height matches the serif at 0.9em.
+  font-size: 0.9em;
   font-weight: 400;
   padding: 2px 4px;
 }
@@ -382,7 +387,6 @@ table[data-toggle="table"].af-table-enhanced tbody tr.af-row-selected {
 
   /* Responsive code blocks for mobile */
   pre {
-    font-size: 0.875rem;
     padding: 8px 10px;
     margin: 0.5rem 0;
   }
@@ -391,13 +395,11 @@ table[data-toggle="table"].af-table-enhanced tbody tr.af-row-selected {
     margin: 0.5rem 0;
 
     pre {
-      font-size: 0.875rem;
       padding: 8px 10px;
     }
   }
 
   :not(pre) > code {
-    font-size: 0.875rem;
     padding: 2px 4px;
   }
 }
@@ -405,19 +407,16 @@ table[data-toggle="table"].af-table-enhanced tbody tr.af-row-selected {
 /* Extra small screens */
 @media (max-width: 400px) {
   pre {
-    font-size: 0.8rem;
     padding: 6px 8px;
   }
 
   figure.highlight {
     pre {
-      font-size: 0.8rem;
       padding: 6px 8px;
     }
   }
 
   :not(pre) > code {
-    font-size: 0.8rem;
     padding: 1px 3px;
   }
 }
@@ -425,13 +424,11 @@ table[data-toggle="table"].af-table-enhanced tbody tr.af-row-selected {
 /* Medium screens - optimize for tablets */
 @media (min-width: 577px) and (max-width: 768px) {
   pre {
-    font-size: 0.9rem;
     padding: 8px 12px;
   }
 
   figure.highlight {
     pre {
-      font-size: 0.9rem;
       padding: 8px 12px;
     }
   }
@@ -837,4 +834,57 @@ figure.cover {
 
 mjx-container[jax="CHTML"][display="true"] {
   overflow-x: auto;
+}
+
+/*******************************************************************************
+ * Syntax highlighting (Rouge tokens), a GitHub-light palette tuned for the
+ * paper code background. `pre.highlight` outranks the theme's pygments sheet.
+ ******************************************************************************/
+pre.highlight {
+  color: #24292f;
+
+  // Reset the theme's bold-black defaults.
+  span {
+    font-weight: normal;
+    font-style: normal;
+    color: inherit;
+  }
+
+  // Comments
+  .c, .ch, .cd, .cm, .cpf, .c1, .cs { color: #6e7781; font-style: italic; }
+  .cp { color: #cf222e; }
+
+  // Keywords and operators
+  .k, .kc, .kd, .kn, .kp, .kr, .kv { color: #cf222e; }
+  .kt { color: #953800; }
+  .o, .ow { color: #cf222e; }
+
+  // Strings
+  .s, .sa, .sb, .sc, .dl, .sd, .s2, .sh, .si, .sx, .s1, .ss, .sr { color: #0a3069; }
+  .se { color: #0550ae; }
+
+  // Numbers and constants
+  .m, .mb, .mf, .mh, .mi, .il, .mo, .mx { color: #0550ae; }
+  .no, .bp { color: #0550ae; }
+
+  // Names
+  .nf, .fm, .nd { color: #8250df; }
+  .nc, .nn, .ne { color: #953800; }
+  .nb { color: #8250df; }
+  .nv, .vc, .vg, .vi, .vm { color: #953800; }
+  .na { color: #0550ae; }
+  .nt { color: #116329; }          // XML tags; command-line flags in console blocks
+  .nl { color: #0550ae; }
+
+  // Shell sessions: prompt and program output
+  .gp { color: #1a7f37; font-weight: 600; user-select: none; }
+  .go { color: #57606a; }
+
+  // Diffs
+  .gd { color: #82071e; background-color: #ffebe9; }
+  .gi { color: #116329; background-color: #dafbe1; }
+  .gh, .gu { color: #0550ae; font-weight: 600; }
+
+  .err { color: #82071e; background-color: transparent; }
+  .w { color: inherit; }
 }

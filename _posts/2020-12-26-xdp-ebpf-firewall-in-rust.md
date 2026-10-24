@@ -1,4 +1,6 @@
-# XDP/eBPF IP-layer firewall in Rust!
+---
+title: "XDP/eBPF firewall in Rust"
+---
 
 One of the option available today to do sub-millisecond packet filtering at scale is to harness the facilities afforded
 by XDP, eBPF, Linux kernel and support provided by various NIC manufacturers.
@@ -22,10 +24,10 @@ the flexibility of the programming model through three example
 use cases: layer-3 routing, inline DDoS protection and layer-4 load
 balancing
 
-## Dependencies Installation and Rust setup
+## 🦀 Dependencies Installation and Rust setup
 
 Install dependencies:
-```
+```console
 $ sudo apt-get install          \
     build-essential             \    
     libelf-dev                  \
@@ -38,7 +40,7 @@ $ sudo apt-get install          \
 ```
 
 Install Rust (single user) using `rustup`
-```
+```console
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 $ . ~/.bashrc # or logout then login.
 $ rustup install nightly
@@ -48,7 +50,7 @@ $ rustc --version
 ```
 
 Install Rust (system-wide) using `rustup`
-```
+```console
 $ sudo -i
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |       \
     env RUSTUP_HOME=/opt/rust/rustup CARGO_HOME=/opt/rust/cargo     \
@@ -65,19 +67,19 @@ $ rustc --version
 ```
 
 Install `carfgo-bpf`:
-```
+```console
 $ cargo install cargo-bpf
 ```
 
-## Walk-through
+## ✨ Walk-through
 
 Create the eBPF project:
-```
+```console
 $ cargo bpf new xdp-ebpf-fw
 ```
 
 Add a new eBPF program called `fw`:
-```
+```console
 $ cd xdp-ebpf-fw
 $ cargo bpf add fw
 ```
@@ -159,15 +161,15 @@ fn get_ip_protocol(ctx: &XdpContext) -> Result<u32, Error> {
 ```
 
 Build eBPF program:
-```
+```console
 $ cargo bpf build 
 ```
 
-## Network queues on QEMU/virtio for XDP
+## 💻 Network queues on QEMU/virtio for XDP
 
 On QEMU, we need to add 2*N* queues (where *N* is the number of vCPUs). The following `<driver>` section is required 
 inside `<interface>` (use `virsh edit [vmname]`) is required (for 4 vCPUs, allocate 8 queues) as of QEMU version 4.2.1.
-```
+```xml
 <interface ...>
 [ ... ]
 <driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off' queues='8' rx_queue_size='256' tx_queue_size='256'>
@@ -178,10 +180,10 @@ inside `<interface>` (use `virsh edit [vmname]`) is required (for 4 vCPUs, alloc
 </interface>
 ```
 
-## Load the compiled eBPF program!
+## 🐝 Load the compiled eBPF program!
 
 Load the compiled eBPF program:
-```
+```console
 $ cd xdp-ebpf-fw
 $ cargo bpf load -i eth0 target/bpf/programs/fw/fw.elf
 ```
@@ -190,15 +192,15 @@ $ cargo bpf load -i eth0 target/bpf/programs/fw/fw.elf
 
 :boom:
 
-## External resources
+## 📌 External resources
 
-- [Rust redbpf crate doc](https://lib.rs/crates/redbpf)
-- [redbpf intro](https://ingraind.org/api/cargo_bpf/)
-- [Four year-old talk by Linux netdev guru David S. Miller on over-arching principles of XDP](https://www.youtube.com/watch?v=NlMQ0i09HMU)
-- [XDP sockets](https://www.youtube.com/watch?v=p61PlC9y62k)
-- [cilium XDP/eBPF](https://docs.cilium.io/en/latest/bpf/)
-- [Awesome eBPF - keep this under the pillow](https://github.com/zoidbergwill/awesome-ebpf)
+- 🦀 [Rust redbpf crate doc](https://lib.rs/crates/redbpf)
+- 👋 [redbpf intro](https://ingraind.org/api/cargo_bpf/)
+- 🐝 [Four year-old talk by Linux netdev guru David S. Miller on over-arching principles of XDP](https://www.youtube.com/watch?v=NlMQ0i09HMU)
+- 🐝 [XDP sockets](https://www.youtube.com/watch?v=p61PlC9y62k)
+- 🐝 [cilium XDP/eBPF](https://docs.cilium.io/en/latest/bpf/)
+- 🐝 [Awesome eBPF - keep this under the pillow](https://github.com/zoidbergwill/awesome-ebpf)
 - [xdp-newbies mailing list](mailto:majordomo@vger.kernel.org?subject=subscribe xdp-newbies&body=subscribe xdp-newbies)
-- [Netronome smart NIC XDP](https://www.youtube.com/watch?v=kFC8Bfk3FuI)
-- [XDP in RHEL (C implementation and guides)](https://developers.redhat.com/blog/2018/12/06/achieving-high-performance-low-latency-networking-with-xdp-part-1/)
-- [XDP Paper](https://github.com/tohojo/xdp-paper/blob/master/xdp-the-express-data-path.pdf)
+- 🐝 [Netronome smart NIC XDP](https://www.youtube.com/watch?v=kFC8Bfk3FuI)
+- 🐝 [XDP in RHEL (C implementation and guides)](https://developers.redhat.com/blog/2018/12/06/achieving-high-performance-low-latency-networking-with-xdp-part-1/)
+- 🐝 [XDP Paper](https://github.com/tohojo/xdp-paper/blob/master/xdp-the-express-data-path.pdf)

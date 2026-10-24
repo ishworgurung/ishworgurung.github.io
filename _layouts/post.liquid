@@ -1,0 +1,123 @@
+---
+layout: default
+---
+{% assign year = page.date | date: '%Y' %}
+{% assign tags = page.tags | join: '' %}
+{% assign categories = page.categories | join: '' %}
+{% assign url_beginning = page.url | slice: 0, 6 %}
+
+{% if page._styles %}
+  <!-- Page/Post style -->
+  <style type="text/css">
+    {{ page._styles }}
+  </style>
+{% endif %}
+
+<div class="post post-single">
+  {% assign words = content | strip_html | number_of_words %}
+  {% assign minutes = words | times: 1.0 | divided_by: site.words_per_minute | ceil | at_least: 1 %}
+  <header class="post-header">
+    <h1 class="post-title">{{ page.title }}</h1>
+    <p class="post-meta">
+      <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: '%-d %b %Y' }}</time>
+      <span aria-hidden="true">&middot;</span>
+      {{ minutes }} min read
+      {% assign last_date = page.last_modified_at | default: page.last_updated %}
+      {% if last_date %}<span aria-hidden="true">&middot;</span> updated {{ last_date | date: '%-d %b %Y' }}{% endif %}
+      {% if page.author %}<span aria-hidden="true">&middot;</span> {{ page.author }}{% endif %}
+      {% for tag in page.tags %}<span aria-hidden="true">&middot;</span> <a href="{{ tag | slugify | prepend: '/blog/tag/' | relative_url }}">#{{ tag }}</a>{% endfor %}
+    </p>
+  </header>
+
+  <article class="post-content">
+    {% comment %} Contents box, generated from the post's headings (levels set under `toc:` in _config.yml). {% endcomment %}
+    {% capture toc_html %}{{ content | toc_only }}{% endcapture %}
+    {% assign toc_entries = toc_html | split: 'class="toc-entry' | size | minus: 1 %}
+    <div id="markdown-content">
+      {% if toc_entries >= 2 %}
+        <details class="post-toc" open>
+          <summary>Contents</summary>
+          {{ toc_html }}
+        </details>
+      {% endif %}
+      {{ content }}
+    </div>
+    <script>
+      // The contents box starts closed on narrow screens; on wide ones it is a sidebar.
+      if (!window.matchMedia("(min-width: 1200px)").matches) {
+        document.querySelectorAll(".post-toc[open]").forEach((d) => d.removeAttribute("open"));
+      }
+
+      // Highlight the contents link for the section being read, and keep it in view.
+      (function () {
+        const toc = document.querySelector(".post-toc");
+        if (!toc) return;
+        const links = [...toc.querySelectorAll('a[href^="#"]')];
+        const pairs = links
+          .map((a) => [a, document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)))])
+          .filter(([, h]) => h);
+        if (!pairs.length) return;
+
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let current = null;
+        function update() {
+          const line = 130; // just below the fixed navbar
+          let active = pairs[0][0];
+          for (const [a, h] of pairs) {
+            if (h.getBoundingClientRect().top <= line) active = a;
+            else break;
+          }
+          if (active === current) return;
+          if (current) current.classList.remove("toc-active");
+          active.classList.add("toc-active");
+          current = active;
+
+          // Scroll the sidebar (not the page) so the active link stays visible.
+          if (toc.scrollHeight > toc.clientHeight) {
+            const a = active.getBoundingClientRect();
+            const t = toc.getBoundingClientRect();
+            if (a.top < t.top + 40 || a.bottom > t.bottom - 40) {
+              toc.scrollTo({ top: toc.scrollTop + (a.top - t.top) - toc.clientHeight / 3, behavior: reduceMotion ? "auto" : "smooth" });
+            }
+          }
+        }
+
+        let ticking = false;
+        window.addEventListener(
+          "scroll",
+          () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+              ticking = false;
+              update();
+            });
+          },
+          { passive: true },
+        );
+        update();
+      })();
+    </script>
+  </article>
+
+  {% if page.citation %}
+    {% include citation.liquid %}
+  {% endif %}
+
+  {% if page.related_publications %}
+    <h2>References</h2>
+    <div class="publications">
+      {% bibliography --group_by none --cited_in_order %}
+    </div>
+  {% endif %}
+
+  {% if site.related_blog_posts and site.related_blog_posts.enabled %}
+    {% if page.related_posts == null or page.related_posts %}
+      {% include related_posts.liquid %}
+    {% endif %}
+  {% endif %}
+
+  {% if site.plugins contains 'al_comments' %}
+    {% include plugins/al_comments.liquid %}
+  {% endif %}
+</div>

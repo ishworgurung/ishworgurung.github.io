@@ -1,12 +1,16 @@
-## Fast Intro
+---
+title: "DNSSEC for the win"
+---
+
+## 👋 Fast Intro
 
 DNSSEC uses digital signature to verify the authenticity and integrity of DNS records. In essence, it sets up
 a non-spoofable chain of trust right from the root zone down to the authoritative nameserver and further to modern caching
 resolvers (e.g., BIND, Unbound etc.). Of course, there's [more](https://youtu.be/_8M_vuFcdZU), 
-[on it](https://www.cloudflare.com/learning/dns/dns-records/dnskey-ds-records/) and 
-[some more](https://www.internetsociety.org/resources/deploy360/2011/dnssec-rfcs-3/).
+🔗 [on it](https://www.cloudflare.com/learning/dns/dns-records/dnskey-ds-records/) and 
+🔗 [some more](https://www.internetsociety.org/resources/deploy360/2011/dnssec-rfcs-3/).
 
-### Why DNSSEC
+### 🔐 Why DNSSEC
 
 There are many reasons to turn on DNSSEC, some of which some of them are outright detrimental to businesses 
 (loss of revenue for instance).
@@ -22,7 +26,7 @@ In general these are some reasons to use DNSSEC:
 
 It goes without saying that DNSSEC is not a panacea :pill:
 
-### Turn the secure bits on
+### 🔒 Turn the secure bits on
 
 To have DNSSEC turned on for a domain, you need three parties working in tandem with each other :revolving_hearts:
 1. The Domain Name Registrar (e.g., Namecheap, Godaddy, tucows etc.) of the domain
@@ -36,13 +40,13 @@ My personal domain **ishworgurung.com** is registered using Namecheap and the au
 So, to setup DNSSEC for my domain, I need to generate a fresh copy of *DS Records* (Delegation Signer) from Vultr. 
 Of particular use are:
   - Key Tag / Key Type (A unique key per DS record used for lookups) [see here](https://tools.ietf.org/html/rfc3658#section-2.4.1) and [here](https://tools.ietf.org/html/rfc2535#section-4.1.6)
-  - [Algorithm](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions#Algorithms) (crypto algorithm)
-  - [Digest Type](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions#Algorithms) (hashing algorithm)
+  - 🔏 [Algorithm](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions#Algorithms) (crypto algorithm)
+  - 🔹 [Digest Type](https://en.wikipedia.org/wiki/Domain_Name_System_Security_Extensions#Algorithms) (hashing algorithm)
   - Digest (hexadecimal representation of the digest)
 
 Vultr by default generates three DS records, copy them to Namecheap's DNSSEC console.
 
-### Handy tools
+### 🔧 Handy tools
 
 Some handy tools the _internets_ has to offer :100: 
 
@@ -53,7 +57,7 @@ Some handy tools the _internets_ has to offer :100:
   - `dig +short dnskey ishworgurung.com`
   - `dig +short nsec ishworgurung.com`
 
-### Conclusion
+### 📝 Conclusion
 
 Someone on the internet said:
 

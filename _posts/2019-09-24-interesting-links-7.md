@@ -1,10 +1,12 @@
-## Interesting links #7
+---
+title: "Interesting links #7"
+---
 
-# TL;DR
+# 📝 TL;DR
 
 Watch [Can strace make you fail? strace syscall fault injection](https://www.youtube.com/watch?v=fYMDzk6HYGU) by Dmitry Levin who is its current maintainer.
 
-# Non TL;DR
+# 📝 Non TL;DR
 
 I find myself needing to use `strace(1)` to debug stuffs a lot but recently, I found myself re-visiting it. 
 Enter syscall tampering / fault injection - Youtube talk by Dmitry Levin [Fault Injection in strace](https://www.youtube.com/watch?v=fYMDzk6HYGU). 

@@ -5,14 +5,48 @@
 @use "variables" as v;
 
 body {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  font-optical-sizing: auto;
 }
 
 code,
 pre,
 kbd,
 samp {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+}
+
+// Bold in article text gets a soft highlighter-pen wash behind the lower part of
+// the letters, like a marked-up book, instead of plain weight alone.
+article strong {
+  font-weight: 600;
+  padding: 0 0.12em;
+  background-image: linear-gradient(transparent 60%, var(--global-strong-highlight-color) 60%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+// Every text link gets a light grey wash behind it on hover. The shadow extends
+// the wash slightly without changing layout. Elements that draw their own hover
+// background (buttons, badges, pagination, blog-index entries) are left alone.
+a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):hover,
+a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):focus-visible {
+  background-color: var(--global-link-hover-bg-color);
+  box-shadow: 0 0 0 3px var(--global-link-hover-bg-color);
+  border-radius: 3px;
+  text-decoration: none;
+}
+
+.note-title a:hover,
+.note-title a:focus-visible {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+// Footer links sit on blue, so they get a translucent white wash instead.
+footer.site-footer a:hover,
+footer.site-footer a:focus-visible {
+  --global-link-hover-bg-color: rgba(255, 255, 255, 0.14);
 }
 
 .news th {

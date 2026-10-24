@@ -239,3 +239,179 @@
     color: var(--global-hover-color);
   }
 }
+
+/* Livelier nav: frosted paper bar, gradient stripe on top (matching the footer),
+   brand-coloured social icons on hover, and a warm underline for the current page. */
+.navbar {
+  // Warm stone tint (a darker shade of the paper), so the bar reads as its own
+  // band above the page without competing with the stripe.
+  background-color: rgba(238, 235, 229, 0.92);
+  background-image: linear-gradient(180deg, rgba(232, 228, 220, 0.94) 0%, rgba(242, 240, 235, 0.9) 100%);
+  border-bottom-color: rgba(90, 80, 60, 0.16);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  backdrop-filter: saturate(1.4) blur(10px);
+  opacity: 1;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #173f75 0%, #2c6aae 55%, var(--global-footer-accent-color) 100%);
+  }
+}
+
+.navbar-social a {
+  display: inline-block;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-2px);
+  }
+
+  &[title="Email"]:hover {
+    color: #d93025;
+  }
+  &[title="GitHub"]:hover,
+  &[title="X"]:hover {
+    color: var(--global-theme-color);
+  }
+  &[title="LinkedIn"]:hover {
+    color: #0a66c2;
+  }
+  &[title="Facebook"]:hover {
+    color: #1877f2;
+  }
+  &[title="Keybase"]:hover {
+    color: #ff6f21;
+  }
+  &[title="RSS feed"]:hover {
+    color: #f26522;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
+  }
+}
+
+.navbar .nav-item.active > .nav-link {
+  color: var(--global-text-color);
+  box-shadow: inset 0 -3px 0 var(--global-footer-accent-color);
+}
+
+/* Layout: shell prompt on the left, menu and small social icons on the right.
+   The bar never collapses; social icons move to the footer on small screens. */
+.navbar > .container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.navbar .navbar-menu-list {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0 auto; // stays right-aligned when the name is hidden
+
+  .nav-link {
+    padding: 0.35rem 0.5rem;
+  }
+}
+
+.navbar-social {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(90, 80, 60, 0.18);
+  font-size: 0.85rem;
+
+  a {
+    padding: 0.2rem 0.3rem;
+    color: var(--global-text-color-light);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .navbar-social {
+    display: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .navbar .search-hint {
+    display: none;
+  }
+}
+
+/* Shell-prompt filler in place of the name on the landing page and blog index. */
+.navbar-prompt {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 auto;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  color: var(--global-text-color);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--global-text-color);
+  }
+
+  span {
+    color: inherit;
+  }
+
+  .np-user {
+    color: #1a7f37;
+    font-weight: 600;
+  }
+  .np-sep {
+    color: var(--global-text-color-light);
+  }
+  .np-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--global-theme-color);
+    font-weight: 600;
+  }
+  .np-dollar {
+    margin-left: 0.45em;
+    color: var(--global-text-color-light);
+  }
+  .np-cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.05em;
+    margin-left: 0.4em;
+    background-color: var(--global-text-color);
+    animation: tagline-cursor 1.1s steps(1) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .np-cursor {
+      animation: none;
+    }
+  }
+}
+
+@media (max-width: 575.98px) {
+  .navbar-prompt .np-user,
+  .navbar-prompt .np-sep {
+    display: none;
+  }
+}

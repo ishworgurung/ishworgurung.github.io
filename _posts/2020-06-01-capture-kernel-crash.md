@@ -1,16 +1,17 @@
-
-## Capturing Linux kernel panic message on QEMU
+---
+title: "Capture kernel crash"
+---
 
 In this small post, I will cover the following:
 - Capture Linux kernel panic message
 - Using `softdog` module to set the watchdog to auto-reboot upon Kernel panic.
 
-### Capture the panic
+### 📡 Capture the panic
 
 Log into your guest and update `/etc/default/grub` and add `console=tty0 console=ttyS0,9600n8` to `GRUB_CMDLINE_LINUX`; Then run `update-grub`.
 
 To capture a kernel panic message, run the virtual machine like so:
-```
+```console
 $ qemu-system-x86_64 -smp 2,sockets=2,cores=1,threads=1 -m 4096 -nographic -serial mon:stdio ubuntu18.04-1.qcow2
 ```
 
@@ -20,7 +21,7 @@ Log in and trigger a kernel panic (either via sysrq or via the faulty kernel mod
 
 Upon kernel panic, a full trace message will appear on your attached console.
 
-```
+```text
 [  247.009745] BUG: stack guard page was hit at 000000006c1ac1e1 (stack is 00000000487682b5..000000001262eb3a)
 [  247.012648] kernel stack overflow (double-fault): 0000 [#1] SMP NOPTI
 [  247.012648] Modules linked in: helloworld(POE+) binfmt_misc ppdev kvm_amd kvm irqbypass input_leds serio_raw parport_pc parport sch_fq_codel softy
@@ -102,7 +103,7 @@ Upon kernel panic, a full trace message will appear on your attached console.
 ```
 
 Just for your information, you can pipe the kernel panic message to `c++filt` to get the demangled symbols (the kernel module is written in Rust and it does not yet seem to support `[no_mangle]`).
-```
+```console
 $ cat panic | c++filt 
 [  247.009745] BUG: stack guard page was hit at 000000006c1ac1e1 (stack is 00000000487682b5..000000001262eb3a)
 [  247.012648] kernel stack overflow (double-fault): 0000 [#1] SMP NOPTI
@@ -188,7 +189,7 @@ $ cat panic | c++filt
 I triggered the above Linux kernel panic while I was trying to understand how the Rust LKM worked; In this case, I allocated large kernel stack which was caught by the stack guard which caused an immediate Kernel panic.
 If you are into Rust and Linux kernel, I definitely recommend checking out [linux-kernel-module-rust](https://github.com/fishinabarrel/linux-kernel-module-rust).
 
-### Auto-reboot upon Linux kernel panic
+### 💥 Auto-reboot upon Linux kernel panic
 
 If you often get kernel panic (while developing/debugging kernel module or what not) or want to ensure system uptime in the face of Kernel instabilities, you could consider enabling `softdog` in-tree linux kernel module.
 This LKM runs a watchdog timer with a periodic heartbeat. Upon heartbeat failure, the timer associated with the heartbeat expires due to a kernel panic upon which, the system is rebooted. 
@@ -196,7 +197,7 @@ For this to work, a kernel parameter needs to be added to GRUB - `GRUB_CMDLINE_L
 
 Ubuntu has commented out the automatic loading of `softdog` kernel module, so it needs to be added back in. Remove `softdog` module from files that reside in `/lib/modprobe.d/*.conf` and then add it to auto-load in `/etc/modules-load.d`.
 Then run the following:
-```
+```console
 $ sudo update-initramfs -u
 $ sudo depmod -a
 $ sudo systemctl reboot

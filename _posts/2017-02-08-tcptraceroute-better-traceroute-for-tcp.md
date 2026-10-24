@@ -1,4 +1,6 @@
-# TCP Packets Debugging on the wire
+---
+title: "A better traceroute for TCP: tcptraceroute"
+---
 
 One of the really handy tool I use to diagnose/measure network path and latencies is `tcptraceroute`. The benefit of 
 using it is that unlike `traceroute` which uses `UDP` packets by default (see TL;DR), `tcptraceroute` only focuses on
@@ -22,7 +24,7 @@ TCP scan technique. From nmap project's documentation:
         open if a SYN packet (without the ACK flag) is received in response. This can be due to an extremely rare TCP
         feature known as a simultaneous open or split handshake connection (see https://nmap.org/misc/split-handshake.pdf). 
 
-## A simplified one-way conversation packet dump
+## 📡 A simplified one-way conversation packet dump
 
 With `tcptraceroute`, only TCP packets with `SYN` flag set are sent outbound to the target destination from the source. Below is
 a network conversation taking place - values removed for clarity. I am tracing the network path to the destination host `10.10.10.1`
@@ -64,7 +66,7 @@ The final `TCP` connection teardown is then initiated (flag `S` and `R` mean `SY
         172.16.255.28.44169 > 10.10.10.1.80: Flags [R], .. seq 1786429734 ..   	
     	
 
-## Hmm..
+## 💡 Hmm..
 But you might be asking why on earth is `tcptraceroute` useful compared to the traditional `traceroute`? Moreover, 
 `traceroute` even supports tracing using `UDP` and `ICMP` on top of `TCP`? The reasons I prefer `tcptraceroute`
 over it are:
@@ -74,7 +76,7 @@ over it are:
     state (although, I love the fact that its `TCP` scans are more faster yielding than `tcptraceroute`)
   * Using `ICMP` tracing, a lot of routers filter `ICMP` echo packets leading to unreliable measurements.    
 
-## TL;DR
+## 📝 TL;DR
 Traditional `traceroute` today is unreliable and un-intuitive. When debugging `TCP` layer issues, to overcome and reduce 
 the noises, one should prefer to use a tool designed for `TCP` as it reduces the noise introduced by other factors such as 
 unreliable network and/or network policies that filter `ICMP` echo packets etc.
@@ -82,7 +84,7 @@ unreliable network and/or network policies that filter `ICMP` echo packets etc.
 One important bit - If you run a gateway gear, *do not forget to disable IP ID randomisation on the WAN interface(s)* 
 or `tcptraceroute` never sees the packet it sent (consequently all your packets will have been sent to `/dev/null`)!
 
-## Usage
+## 🔎 Usage
 Using `tcptraceroute` is the simplest command one can imagine executing on Linux:
 
     isg@kingkong:~$ sudo tcptraceroute 10.10.10.1 80
@@ -103,7 +105,7 @@ Using `tcptraceroute` is the simplest command one can imagine executing on Linux
    
 You can also debug the packets as seen by `tcptraceroute` using the `-d` switch.
    
-## Other handy tools
+## 🔧 Other handy tools
 There are bazillion other tools in the Web and Network ops realm to cover in this post. 
 There are many GUI based ones as well; I prefer cmdline so here are some of the handy tools to use in cmdline:
   
