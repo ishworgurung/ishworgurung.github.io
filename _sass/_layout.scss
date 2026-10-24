@@ -193,53 +193,109 @@ body.sticky-bottom-footer {
 
 }
 
-// Contents box: collapsible on narrow screens, sticky sidebar on wide ones.
+// Contents box: a raised card with a reading rail. Collapsible on narrow
+// screens, sticky sidebar on wide ones. Each entry hangs off a thin vertical
+// rail; the section being read lights up the rail in the theme blue.
 .post-toc {
-  margin-top: 1.5rem;
-  margin-bottom: 2rem;
-  padding: 0.75rem 1.1rem;
-  border: 1px solid var(--global-divider-color);
-  border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.55);
-  font-size: 0.85rem;
-  line-height: 1.45;
+  margin: 1.5rem 0 2rem;
+  padding: 0.9rem 1rem 0.8rem 1.1rem;
+  background: #fffefb;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(29, 79, 145, 0.06);
+  font-size: 0.72rem;
+  line-height: 1.4;
 
   summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    list-style: none;
     cursor: pointer;
+    font-size: 0.68rem;
     font-weight: 600;
-    font-size: 0.8rem;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--global-text-color-light);
-  }
 
-  ul {
-    margin: 0.6rem 0 0;
-    padding-left: 0;
-    list-style: none;
+    &::-webkit-details-marker {
+      display: none;
+    }
 
-    ul {
-      margin: 0.15rem 0 0.35rem;
-      padding-left: 1.1rem;
+    // Chevron: points down when closed, up when open.
+    &::after {
+      content: "";
+      width: 0.45rem;
+      height: 0.45rem;
+      margin-right: 0.2rem;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: translateY(-25%) rotate(45deg);
+      transition: transform 0.2s ease;
     }
   }
 
-  li {
-    margin: 0.2rem 0;
+  &[open] summary::after {
+    transform: translateY(25%) rotate(-135deg);
   }
 
-  // Current section while scrolling.
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  > ul {
+    margin-top: 0.7rem;
+    border-left: 1px solid rgba(0, 0, 0, 0.09);
+  }
+
+  li {
+    margin: 0;
+  }
+}
+
+// The id raises specificity above the site-wide link hover wash.
+#markdown-content .post-toc {
   a {
-    display: inline-block;
-    padding: 0.05rem 0.35rem;
-    margin-left: -0.35rem;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    display: block;
+    margin-left: -1px;
+    padding: 0.3rem 0.5rem 0.3rem 0.85rem;
+    border-left: 2px solid transparent;
+    border-radius: 0 6px 6px 0;
+    color: var(--global-text-color-light);
+    text-decoration: none;
+    box-shadow: none;
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--global-text-color);
+      background-color: rgba(29, 79, 145, 0.05);
+      box-shadow: none;
+      border-radius: 0 6px 6px 0;
+    }
+  }
+
+  ul ul a {
+    padding-left: 1.6rem;
+    font-size: 0.95em;
+  }
+
+  ul ul ul a {
+    padding-left: 2.35rem;
   }
 
   a.toc-active {
-    background-color: rgba(0, 0, 0, 0.07);
-    color: var(--global-text-color);
+    color: var(--global-theme-color);
+    font-weight: 600;
+    border-left-color: var(--global-theme-color);
+    background-color: rgba(29, 79, 145, 0.07);
   }
 }
 
@@ -273,6 +329,10 @@ body.sticky-bottom-footer {
         list-style: none;
 
         &::-webkit-details-marker {
+          display: none;
+        }
+
+        &::after {
           display: none;
         }
       }
