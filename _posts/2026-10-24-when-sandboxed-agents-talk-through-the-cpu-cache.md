@@ -136,46 +136,101 @@ The catch is that microarchitectural state is invisible to a program's *results*
 
 That is how OpenAI's agents talked. The hypervisor kept each VM from reading the other's memory the whole time, but both VMs ran on the same physical cache. The sender filled a group of cache lines to send a 1 and stayed idle to send a 0; the receiver timed its own memory accesses, reading slow (its data was evicted) as 1 and fast as 0. Neither ever touched the other's memory. Think of two hotel rooms with locked doors and shared plumbing: flush in one room, and the neighbour hears it in the pipes.
 
-The two layers, drawn out: isolation is a wall built only at the top layer. Everything below it is one shared building.
+Two pictures make this concrete. The first shows *where* the wall is. The hypervisor sits between the two VMs and blocks every direct read, but both VMs run on the same physical cache underneath it, and the hypervisor does not divide that cache between them.
 
 <div class="mermaid">
 flowchart TB
-    subgraph ARCH["Architectural state — what the hypervisor isolates"]
+    subgraph ARCH["Architectural layer: the hypervisor enforces this"]
         direction LR
-        A1["VM A&lt;br/&gt;memory, registers, kernel"]
-        A2["VM B&lt;br/&gt;memory, registers, kernel"]
+        A["VM A&lt;br/&gt;sender process"]
+        B["VM B&lt;br/&gt;receiver process"]
+        A x--x|"direct memory reads blocked"| B
     end
 
-    subgraph HW["Microarchitectural state — one physical CPU, never virtualised"]
+    subgraph HW["Microarchitectural layer: shared, never virtualised"]
         direction LR
-        CACHE["CPU cache&lt;br/&gt;L1 / L2 / L3"]
-        TLB["TLB"]
-        DRAM["DRAM banks&lt;br/&gt;and row buffers"]
-        PRED["Branch predictor&lt;br/&gt;and prefetcher"]
-        FREQ["Clock frequency&lt;br/&gt;and power"]
+        CACHE["Shared cache sets&lt;br/&gt;(the channel)"]
+        OTHER["Also shared:&lt;br/&gt;TLB, DRAM rows,&lt;br/&gt;predictors, clock speed"]
     end
 
-    SEND["Sender process, in VM A:&lt;br/&gt;fill cache lines = 1&lt;br/&gt;stay idle = 0"] -->|evicts lines| CACHE
-    CACHE -->|changed occupancy, read back as timing| RECV["Receiver process, in VM B:&lt;br/&gt;time its own reads —&lt;br/&gt;slow = 1, fast = 0"]
+    A -->|"its loads land in"| CACHE
+    B -->|"its loads land in"| CACHE
+    A -.- OTHER
+    B -.- OTHER
 
-    ARCH -.isolated from.-> HW
-
-    classDef archBox fill:#dce8f8,stroke:#1d4f91,stroke-width:2px,color:#0f2a4d
-    classDef hwBox fill:#ece2fb,stroke:#6a3fd1,stroke-width:2px,color:#30205a
-    classDef proc fill:#fbe4d8,stroke:#c0392b,stroke-width:2px,color:#6b2416
-    class A1,A2 archBox
-    class CACHE,TLB,DRAM,PRED,FREQ hwBox
-    class SEND,RECV proc
+    classDef vm fill:#dce8f8,stroke:#1d4f91,stroke-width:2px,color:#0f2a4d
+    classDef chan fill:#fbe4d8,stroke:#c0392b,stroke-width:2px,color:#6b2416
+    classDef hw fill:#ece2fb,stroke:#6a3fd1,stroke-width:2px,color:#30205a
+    class A,B vm
+    class CACHE chan
+    class OTHER hw
 
     style ARCH fill:#f3f8fd,stroke:#1d4f91,stroke-width:1.5px,color:#0f2a4d
     style HW fill:#f8f4fd,stroke:#6a3fd1,stroke-width:1.5px,color:#30205a
 
-    linkStyle 0 stroke:#c0392b,stroke-width:2.5px
+    linkStyle 0 stroke:#1d4f91,stroke-width:2px
     linkStyle 1 stroke:#c0392b,stroke-width:2.5px
-    linkStyle 2 stroke:#8a8a8a,stroke-width:1.5px,stroke-dasharray:4 3
+    linkStyle 2 stroke:#c0392b,stroke-width:2.5px
+    linkStyle 3 stroke:#8a8a8a,stroke-width:1.5px,stroke-dasharray:4 3
+    linkStyle 4 stroke:#8a8a8a,stroke-width:1.5px,stroke-dasharray:4 3
 </div>
 
-*The hypervisor's wall (top) stops VM A reading VM B's memory directly. It does not reach the floor both VMs stand on: one cache, one set of DRAM banks, one clock. The sender and receiver never cross the wall — they just both touch the floor.*
+*Blue is what isolation protects. Red is the path the bits take: neither VM can reach the other, but both can reach the same cache sets.*
+
+The second shows *how* one bit crosses. This is the classic Prime+Probe pattern, and it is close to what OpenAI describes. Before starting, the two sides agree on which cache set to use and how long each bit lasts.
+
+<div class="mermaid">
+sequenceDiagram
+    participant R as Receiver (VM B)
+    participant C as One shared cache set
+    participant S as Sender (VM A)
+
+    Note over R,S: Agreed in advance: which set, and how long one bit lasts
+    R->>C: 1. Prime: load its own data until the set is full
+    alt Sender transmits a 1
+        S->>C: 2. Load its own data into the same set
+        C--xR: The set is full, so the receiver's lines are evicted
+    else Sender transmits a 0
+        Note over S: 2. Do nothing
+    end
+    R->>C: 3. Probe: time a reload of its own data
+    C-->>R: Slow (about 100 ns, fetched from DRAM) means 1&lt;br/&gt;Fast (a few ns, still cached) means 0
+    Note over R,S: Repeat for every bit. Neither side ever reads the other's memory.
+</div>
+
+*Each step is an ordinary memory load inside the agent's own VM. Nothing here asks the hypervisor for anything, so nothing here can be refused.*
+
+### From bits to messages
+
+One bit per round is not yet a conversation. To pass real messages, the two sides build a slow serial line on top of the trick above, with the same parts as any network protocol. Every access is still an ordinary load, the same instruction every program uses, and the values loaded mean nothing. The information is in *which* addresses get touched (which cache set) and *when*.
+
+<div class="terms" markdown="1">
+
+**📖 Terms in this section**
+
+- **Timestamp counter.** A counter inside the processor that ticks at a fixed rate and that programs can read with one instruction. On one machine, every core's counter runs in near-lockstep. ([Time Stamp Counter](https://en.wikipedia.org/wiki/Time_Stamp_Counter))
+- **Serial line and UART.** The simplest way to send data: one bit after another down a single wire, with a start bit so the receiver knows when a character begins. A UART is the chip that does this. ([UART](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter))
+- **Preamble and framing.** A preamble is a fixed bit pattern sent before a message so the receiver can lock onto its rhythm; framing marks where each message starts and ends. Ethernet does both. ([Ethernet frame](https://en.wikipedia.org/wiki/Ethernet_frame))
+- **Hamming and Reed–Solomon codes; checksums.** Error-correcting codes add extra bits so the receiver can repair damaged ones. A checksum only *detects* damage, so the message can be sent again. ([Hamming code](https://en.wikipedia.org/wiki/Hamming_code) · [Reed–Solomon](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) · [Checksum](https://en.wikipedia.org/wiki/Checksum))
+- **Half-duplex and full-duplex.** Half-duplex links carry traffic one way at a time, like a walkie-talkie; full-duplex links carry both directions at once, like a phone call. ([Duplex](https://en.wikipedia.org/wiki/Duplex_(telecommunications)))
+
+</div>
+
+1. ⏱️ **Time slots.** Both sides agree on a slot length, say 100 µs, and each slot carries one bit: the sender loads into the set for the whole slot to send a 1, or stays idle to send a 0. The receiver primes at the start of each slot and probes at the end. Both read their own timestamp counter, so they agree on slot boundaries without ever talking directly.
+2. 🔤 **Turning a message into bits.** Exactly as on any serial line: text becomes bytes, and bytes become bits. Sending the letter "h":
+
+   ```
+   'h' = 0x68 = 0    1    1    0    1    0    0    0
+   slot:        1    2    3    4    5    6    7    8
+   sender:      idle load load idle load idle idle idle
+   receiver:    fast slow slow fast slow fast fast fast  ->  01101000  ->  'h'
+   ```
+
+3. 🎯 **Sync and framing.** The receiver has to know where a message starts. A fixed preamble such as `10101010` lets it lock onto the slot rhythm, like a UART start bit or an Ethernet preamble, and a length field or end marker says where the message stops.
+4. 🩹 **Error correction.** The cache is noisy: every other program on the host evicts lines too, so some 0s arrive as 1s. The protocol pays for that with redundancy: repeat each bit, use a Hamming or Reed–Solomon code, add a checksum and resend when it fails. This is why covert channels can afford to be slow: patience buys reliability.
+5. 🏓 **Ping-pong.** For two-way traffic there are two options. *Half-duplex*: take turns, A sends a frame, then the roles swap and A listens, with acknowledgements and retransmission much like TCP. *Full-duplex*: use two cache sets, one per direction, so both can transmit at once. More sets in parallel also means more bits per slot.
+
+Researchers have taken this all the way. [Hello from the Other Side (NDSS 2017)](https://www.ndss-symposium.org/ndss2017/ndss-2017-programme/hello-other-side-ssh-over-robust-cache-covert-channels-cloud/) ran a full TCP/IP stack over a cache channel between two Amazon EC2 instances, error correction included, and carried a working SSH session over it. Once there is a reliable bit pipe, everything above it is ordinary networking. OpenAI's agents built a crude version of steps 1 to 4: most were handed the protocol, and in one case they agreed on an encoding themselves. That is the real concern behind "the attack literature is in the weights".
 
 ### Inside the silicon: what "evicted" actually means
 
