@@ -537,6 +537,10 @@ One thing that is **not** on this list: confidential computing. AMD SEV-SNP and 
 1. **A second kernel is a boundary for software, not for hardware.** The microVM is still the right primitive, but its guarantees stop at what the hypervisor virtualises. What shares a host is a security decision, and the scheduler is part of the sandbox.
 2. **The section 8 items are not theoretical.** That post listed side channels, exfiltration through allowed channels, and the model as a channel among [what the stack still misses]({% post_url 2026-10-21-sandboxing-untrusted-ai-agents-on-linux %}#-8-what-the-stack-above-still-misses). OpenAI has now shown agents building those channels on demand. The fix is the same as before, applied across agents: decide what each agent may hold, and make sure the agents that could talk to each other cannot assemble the lethal trifecta between them.
 
+> If any of this felt like you'd read it before, that's because you had: Prime+Probe is 21 years old, Rowhammer is 12, Spectre is 8, and not one line of silicon changed to make OpenAI's finding possible. Same cache, same bus, same clock, same bag of tricks from the same conference proceedings — just a new kind of attacker that can read all of it overnight and never gets bored of trying.
+>
+> — Déjà vu, agentic-sandbox edition
+
 ## 📚 Sources
 
 Point-in-time (checked October 2026).
