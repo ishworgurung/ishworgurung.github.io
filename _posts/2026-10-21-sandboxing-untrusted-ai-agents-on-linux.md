@@ -81,6 +81,7 @@ The status quo for running arbitrary code has been **[OCI](https://github.com/op
 | **bwrap / [nsjail](https://github.com/google/nsjail) / Landlock launchers (e.g. Sandlock)** | namespaces, shared kernel | low to moderate | ~ms | very high | trusted code; per-call confinement |
 | **OCI container** (`runc`) | namespaces + seccomp, shared kernel | moderate | ~100 ms | very high | semi-trusted; the status quo |
 | **gVisor** | user-space kernel intercepts syscalls | high (small host surface) | ~100 to 300 ms | high | untrusted code without a VM; some compatibility cost |
+| **[Incus](https://linuxcontainers.org/incus/introduction/) container** (system container) | namespaces + seccomp + LSM, shared kernel | moderate | ~1 ms to 1 s | very high | semi-trusted agents that want a whole persistent OS; self-hosted dev and CI |
 | **Kata / Firecracker / [Cloud Hypervisor](https://www.cloudhypervisor.org/)** | separate guest kernel (KVM) | highest (on Linux) | ~100 to 150 ms, faster from snapshot | moderate | untrusted, multi-tenant: the serious default |
 | **[WASM](https://webassembly.org/) runtime** | capability-based VM, no syscalls | high for *what it supports* | ~ms | very high | narrow, pure-compute tools |
 
@@ -115,6 +116,7 @@ These share a fundamental limit that several guides state: bubblewrap and Seatbe
 - 🐳 **[Cloudflare Sandbox SDK](https://developers.cloudflare.com/sandbox/).** Built on Cloudflare **Containers**, one sandbox per VM. Its docs recommend per-user sandboxes because everything in one sandbox shares resources. Third parties dispute the exact mechanism, and it is pre-1.0.
 - 🐳 **[Daytona](https://www.daytona.io/docs/).** Fast-create persistent workspaces with snapshots and forks. Default isolation is reported as containers on the host kernel, with optional **Kata** or Sysbox for stronger isolation. Licensing and status were in flux in 2026, so verify before relying on it.
 - ☸️ **[Kubernetes `agent-sandbox`](https://agent-sandbox.sigs.k8s.io/docs/getting_started/overview/).** Not an isolator itself: a `Sandbox` CRD plus controller that schedules pods onto **gVisor or Kata** via `RuntimeClass`, with **warm pools** for sub-second starts. It is the orchestration story for self-hosting agent sandboxes at scale.
+- 🏠 **[Incus](https://linuxcontainers.org/incus/introduction/).** The community fork of LXD (Apache-2.0, written in Go). Not agent-specific, but the most credible *self-hosted* way to hand an agent a whole machine. One REST API and CLI manage **system containers** (shared kernel, unprivileged by default) and **QEMU virtual machines** (own kernel) side by side, with images, snapshots, copy-on-write clones, **projects** to partition tenants, network ACLs for egress, and lifecycle events you can subscribe to for audit. The isolation depends on the instance type you pick: a container is the shared-kernel tier, an Incus VM is the separate-kernel tier with QEMU's larger device surface than Firecracker's. It is a manager, not a sandbox primitive, so you still put the agent's tool calls behind your own broker and an egress proxy.
 
 ### 🐚 NVIDIA OpenShell: the supervisor pattern, productised
 
