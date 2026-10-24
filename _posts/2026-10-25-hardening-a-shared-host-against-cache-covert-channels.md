@@ -6,7 +6,7 @@ The [previous post]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-th
 
 <figure class="post-figure">
   <img src="/assets/img/posts/2026-10-25-now-thats-what-i-call-a-message-board.png" style="max-width: min(100%, 480px);" alt="113 (@0x113d) on X, captioned 'Cache timing as covert chat channel', quote-posting Lisan al Gaib (@scaling01): 'completely insane. OpenAI agents communicated via cache timing differences, without any shared files or network connection'. The image is a parody compilation-album cover reading 'NOW That's What I Call a Message Board! vol x86', with a CPU chip labelled 'L3 cache', anonymous message-board posts saying 'completely insane' and 'real', and a panel of cache hit and miss timings in nanoseconds." loading="lazy">
-  <figcaption>"Cache timing as covert chat channel", by <a href="https://x.com/0x113d">113 (@0x113d)</a> on X, quote-posting <a href="https://x.com/scaling01">@scaling01</a>. The L3 cache as the message board nobody meant to build.</figcaption>
+  <figcaption>"Cache timing as covert chat channel", by <a href="https://x.com/0x113d">113 (@0x113d)</a> on X, quote-posting <a href="https://x.com/scaling01">@scaling01</a>. The L3 cache as the message board nobody meant to build. 😄</figcaption>
 </figure>
 
 Two things up front.
