@@ -6,3 +6,8 @@
     </p>
   </div>
 </footer>
+
+{% if site.search_enabled %}
+  {% comment %} Adds post-body matches to the search box. {% endcomment %}
+  <script defer src="{{ '/assets/js/search-fulltext.js' | relative_url }}"></script>
+{% endif %}

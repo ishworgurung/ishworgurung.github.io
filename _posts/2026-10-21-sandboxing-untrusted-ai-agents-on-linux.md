@@ -453,7 +453,7 @@ Sections 1 to 7 are about *confining the process*. Checked against a real agent 
 
 📦 **Testing the sandbox itself.** Run escape tests in CI (the x32, io_uring and `TIOCSTI` cases from section 1, plus something like SandboxEscapeBench from section 6) on every kernel and distribution you ship on, because the same sandbox can fail open elsewhere.
 
-🧊 **Side channels and physical access.** [Spectre-class](https://docs.kernel.org/admin-guide/hw-vuln/spectre.html) leaks, SMT sharing and [Rowhammer](https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf) cross every software boundary, the VM one included. The mitigations are scheduling (no SMT sharing between tenants, [core scheduling](https://docs.kernel.org/admin-guide/hw-vuln/core-scheduling.html)) and hardware. Physical attacks on the bus are out of scope for every tier here.
+🧊 **Side channels and physical access.** [Spectre-class](https://docs.kernel.org/admin-guide/hw-vuln/spectre.html) leaks, SMT sharing and [Rowhammer](https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf) cross every software boundary, the VM one included. The mitigations are scheduling (no SMT sharing between tenants, [core scheduling](https://docs.kernel.org/admin-guide/hw-vuln/core-scheduling.html)) and hardware. Physical attacks on the bus are out of scope for every tier here. OpenAI has since shown agents in separate microVMs on one host passing secrets through the CPU cache; see [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}) for that report and a layered defence.
 
 ### 🌀 Could quantum help?
 

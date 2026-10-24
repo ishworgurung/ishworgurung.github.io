@@ -26,6 +26,16 @@ article strong {
   box-decoration-break: clone;
 }
 
+// Landing on a page from a search match (Scroll To Text Fragment) highlights
+// the matched text. The browser default is a jarring purple that clashes
+// with the yellow strong-text wash above, so give it its own colour: a soft
+// green, which reads as "found" without being confused for either bold
+// emphasis or a text selection.
+::target-text {
+  background-color: rgba(60, 150, 100, 0.28);
+  color: inherit;
+}
+
 // Every text link gets a light grey wash behind it on hover. The shadow extends
 // the wash slightly without changing layout. Elements that draw their own hover
 // background (buttons, badges, pagination, blog-index entries) are left alone.
@@ -107,18 +117,80 @@ table.table a {
   }
 }
 
+// Plain quotes read as an editorial pull-quote, raised slightly off the page:
+// a soft card with a large serif quotation mark and italic text. Admonition
+// variants (tip/warning/danger) below override the card back to a flat,
+// coloured, left-bordered box.
 blockquote {
-  background: var(--global-bg-color);
-  border-left: 5px solid var(--global-theme-color);
-  margin: 1.5em 0;
-  padding: 1em;
-  font-size: 1.2rem;
+  position: relative;
+  background: #fffefb;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 10px 28px rgba(29, 79, 145, 0.08);
+  margin: 2em 0;
+  padding: 1.6em 1.9em 1.6em 2.8em;
+  font-size: 1.15rem;
+  font-style: italic;
+  line-height: 1.6;
+
+  &::before {
+    content: "\201C";
+    position: absolute;
+    top: 0.18em;
+    left: 0.5em;
+    font-family: Georgia, "Source Serif 4", serif;
+    font-style: normal;
+    font-size: 3.2rem;
+    line-height: 1;
+    color: var(--global-theme-color);
+    opacity: 0.25;
+  }
 
   p {
-    margin-bottom: 0;
+    margin-bottom: 0.6em;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  // A trailing short paragraph, e.g. "— Author", reads as the citation line:
+  // upright, smaller, muted, set apart from the italic quote above it.
+  p:last-child:not(:first-child) {
+    font-style: normal;
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+    color: var(--global-text-color-light);
+
+    a {
+      color: inherit;
+    }
   }
 
   /* Tips, warnings, and dangers blockquotes */
+  &.block-tip,
+  &.block-warning,
+  &.block-danger {
+    border: none;
+    border-left: 5px solid var(--global-theme-color);
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    font-style: normal;
+    padding: 1em 1em 1em 1.3em;
+
+    &::before {
+      content: none;
+    }
+
+    p:last-child:not(:first-child) {
+      font-style: inherit;
+      font-size: inherit;
+      letter-spacing: normal;
+    }
+  }
+
   &.block-tip {
     border-color: var(--global-tip-block);
     background-color: var(--global-tip-block-bg);
