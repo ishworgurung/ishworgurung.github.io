@@ -326,6 +326,19 @@ perf stat -a -G tenant-b -e LLC-loads,LLC-load-misses -I 10
 
 A covert channel looks like a *regular* signal: cache misses or memory traffic switching on and off at a fixed period, or a small working set with a miss rate that ordinary code of that size never has. Sample every few milliseconds and look for strong periodicity (an autocorrelation peak, or a sharp line in a Fourier transform). Treat it as a tripwire, as [layer 5]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#layer-5-detect-and-respond) of the previous post did: a patient sender can add jitter and hide in noise, and detectors trained on known channels miss new ones.
 
+## 🔒 What is closed
+
+"Closed" here means closed *between trust domains*, once the step is in place and the audit in step 8 says it still is. Each holds only while the steps before it do: cache partitioning means little if two tenants still share a core.
+
+- 🧵 **L1 and L2 caches, the TLB, branch predictors and execution ports**, by steps 1 and 2. No two domains run on one core at the same time, or one after the other, so none of the core-private state is shared. This is the largest class of channels, and the fastest: it covers TLBleed, port contention and most of the MDS family.
+- 🧹 **State left behind on a shared core**, by step 4. Where a core is still shared in time, the predictor barrier and L1 flush stop the next tenant reading what the last one left. Current microcode and `mitigations=auto,nosmt` keep the known transient-execution bugs from turning a covert channel into a side channel against an agent that is not cooperating.
+- 🔁 **Flush+Reload and Flip Feng Shui across VMs**, by step 3. Both need a physical page shared between tenants. With KSM off there is none.
+- 🧱 **Last-level cache Prime+Probe**, by step 5 for domains that share an L3, and completely by step 0's placement for domains that do not. A sender can only evict lines in its own ways, so it can no longer push the receiver's lines out. Leaving the hardware ways to the host also keeps tenants away from the cache that DDIO, and so NetCAT, reaches.
+- 🔋 **The free receivers**, by step 6. Guests have no performance counters and no energy readings, so PLATYPUS-style power channels and exact miss counts are gone, and a receiver is left with timing loops, which are slower and noisier.
+- ⚖️ **CPU-time and disk contention between domains**, by step 7. With fixed quotas and separate disks, one tenant's load no longer changes another's speed, which was the basis of the CPU and "acoustic modem" storage channels in OpenAI's report.
+
+Together these remove every channel the [previous post's table]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-why-a-vm-even-firecracker-does-not-stop-this) marks as needing a shared core, a shared page, or shared cache ways. What remains is the package-wide and off-chip part of that table.
+
 ## 🧾 What is still open
 
 After every step above, two tenants on one host still share:
