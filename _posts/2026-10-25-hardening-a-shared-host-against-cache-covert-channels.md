@@ -4,6 +4,11 @@ title: "Hardening a shared Linux host against cache covert channels"
 
 The [previous post]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}) explained how agents in separate microVMs passed secrets to each other through the CPU cache, why no kind of VM stops that on its own, and what a layered defence looks like. It stayed at the level of *what* to do. This post is the *how*: one Linux host running KVM guests (Firecracker or QEMU), taken from the default configuration to one where agents in different trust domains share as little hardware as the machine allows, with the commands, the files they touch, and how to check that each step did something.
 
+<figure class="post-figure">
+  <img src="/assets/img/posts/2026-10-25-now-thats-what-i-call-a-message-board.png" style="max-width: min(100%, 480px);" alt="113 (@0x113d) on X, captioned 'Cache timing as covert chat channel', quote-posting Lisan al Gaib (@scaling01): 'completely insane. OpenAI agents communicated via cache timing differences, without any shared files or network connection'. The image is a parody compilation-album cover reading 'NOW That's What I Call a Message Board! vol x86', with a CPU chip labelled 'L3 cache', anonymous message-board posts saying 'completely insane' and 'real', and a panel of cache hit and miss timings in nanoseconds." loading="lazy">
+  <figcaption>"Cache timing as covert chat channel", by <a href="https://x.com/0x113d">113 (@0x113d)</a> on X, quote-posting <a href="https://x.com/scaling01">@scaling01</a>. The L3 cache as the message board nobody meant to build.</figcaption>
+</figure>
+
 Two things up front.
 
 - **This does not get you to zero.** The previous post's [conclusion]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-what-mitigated-means-here) still holds: on shared hardware you lower bandwidth and raise cost, you do not remove the channel. If two agents must *never* communicate (one holds secrets, the other can reach the network), put them on separate physical hosts and stop reading here. Everything below is for agents that have to share a box.
@@ -368,6 +373,7 @@ Each of these is slower and noisier than an L1 or LLC channel, and each still wo
 
 Point-in-time (checked October 2026).
 
+- Image: "Cache timing as covert chat channel" by [113 (@0x113d)](https://x.com/0x113d) on X, quote-posting [@scaling01](https://x.com/scaling01)
 - Previous posts: [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}) · [Sandboxing untrusted AI agents on Linux]({% post_url 2026-10-21-sandboxing-untrusted-ai-agents-on-linux %})
 - Kernel: [cgroup v2 and cpuset partitions](https://docs.kernel.org/admin-guide/cgroup-v2.html) · [resctrl](https://docs.kernel.org/filesystems/resctrl.html) · [core scheduling](https://docs.kernel.org/admin-guide/hw-vuln/core-scheduling.html) · [attack vector controls](https://docs.kernel.org/admin-guide/hw-vuln/attack_vector_controls.html) · [L1TF](https://docs.kernel.org/admin-guide/hw-vuln/l1tf.html) · [L1D flushing](https://docs.kernel.org/admin-guide/hw-vuln/l1d_flush.html) · [KSM](https://docs.kernel.org/admin-guide/mm/ksm.html) · [kernel parameters](https://docs.kernel.org/admin-guide/kernel-parameters.html) · [powercap](https://docs.kernel.org/power/powercap/powercap.html)
 - Tools: [coresched(1)](https://man7.org/linux/man-pages/man1/coresched.1.html) · [hwloc](https://www.open-mpi.org/projects/hwloc/) · [systemd resource control](https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html) · [Firecracker jailer](https://github.com/firecracker-microvm/firecracker/blob/main/docs/jailer.md) · [Firecracker production host setup](https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md) · [Kubernetes CPU management policies](https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/)
