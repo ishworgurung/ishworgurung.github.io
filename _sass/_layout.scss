@@ -319,8 +319,27 @@ article .profile .more-info {
   font-variant-numeric: tabular-nums;
 }
 
+.latest-item {
+  position: relative;
+}
+
+// The whole row is the link; the row's own hover is the only highlight.
 .latest-title {
   font-size: 1.02rem;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+  }
+}
+
+// Repeated classes outrank the site-wide link hover rule.
+.latest.latest .latest-item.latest-item a.latest-title:hover,
+.latest.latest .latest-item.latest-item a.latest-title:focus-visible {
+  background-color: transparent;
+  box-shadow: none;
 }
 
 .all-posts {

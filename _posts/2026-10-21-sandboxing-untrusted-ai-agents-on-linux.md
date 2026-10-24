@@ -61,7 +61,7 @@ Each hole is invisible if you reason about syscalls by name. This is why serious
 
 - 📦 **Landlock is maturing into a real agent primitive.** It began filesystem-only (Linux 5.13). ABI 4 (Linux 6.7) added TCP bind and connect rules, ABI 6 (Linux 6.12) added abstract-unix-socket and signal *scoping*, and ABIs 9 and 10 added pathname unix sockets and UDP. That turns Landlock from "restrict files" into "restrict a process tree's whole resource reach", unprivileged and self-applied, which is ideal for a CLI agent that sandboxes itself.
 
-- 🛂 **[seccomp-notify](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) supervisors put user-space policy in the loop.** Instead of a static allow/deny BPF program, the kernel can *forward* a syscall to a supervisor process that decides at runtime and can even virtualise the effect. The 2026 research prototype **Sandlock** (Wang and Zheng, [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)) combines Landlock and seccomp with a seccomp-notification supervisor to get dynamic network decisions, HTTP-level access control, and [TOCTOU](https://cwe.mitre.org/data/definitions/367.html)-safe inspection of `execve` arguments, all unprivileged, with about 5 ms startup overhead. "Static policy compiled into the kernel, plus a narrow supervisor for the hard cases" is likely where lightweight agent sandboxes head. NVIDIA's OpenShell (section 4) now ships this shape as a product.
+- 🛂 **[seccomp-notify](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) supervisors put user-space policy in the loop.** Instead of a static allow/deny BPF program, the kernel can *forward* a syscall to a supervisor process that decides at runtime and can even virtualise the effect. **Sandlock** (Wang and Zheng, [arXiv:2605.26298](https://arxiv.org/abs/2605.26298)), a 2026 research prototype that is now an [open-source project](https://github.com/multikernel/sandlock) (section 4), combines Landlock and seccomp with a seccomp-notification supervisor to get dynamic network decisions, HTTP-level access control, and [TOCTOU](https://cwe.mitre.org/data/definitions/367.html)-safe inspection of `execve` arguments, all unprivileged, with about 5 ms startup overhead. "Static policy compiled into the kernel, plus a narrow supervisor for the hard cases" is likely where lightweight agent sandboxes head. NVIDIA's OpenShell (section 4) now ships this shape as a product.
 
 - ☸️ **Orchestration is standardising.** The Kubernetes SIG's **agent-sandbox** (a `Sandbox` [CRD](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) with warm pools, delegating isolation to gVisor or Kata via [`RuntimeClass`](https://kubernetes.io/docs/concepts/containers/runtime-class/)) signals that "a sandbox" is becoming a first-class, schedulable object with stable identity, persistent storage and a sub-second claim from a pre-warmed pool, rather than an ad-hoc `docker run`.
 
@@ -78,7 +78,7 @@ The status quo for running arbitrary code has been **[OCI](https://github.com/op
 | Approach | Boundary | Isolation strength | Start | Cost / density | Best fit for agents |
 |---|---|---|---|---|---|
 | `chroot` | path resolution only | ~none (escapable) | instant | free | not a sandbox |
-| **bwrap / [nsjail](https://github.com/google/nsjail) / Landlock launchers** | namespaces, shared kernel | low to moderate | ~ms | very high | trusted code; per-call confinement |
+| **bwrap / [nsjail](https://github.com/google/nsjail) / Landlock launchers (e.g. Sandlock)** | namespaces, shared kernel | low to moderate | ~ms | very high | trusted code; per-call confinement |
 | **OCI container** (`runc`) | namespaces + seccomp, shared kernel | moderate | ~100 ms | very high | semi-trusted; the status quo |
 | **gVisor** | user-space kernel intercepts syscalls | high (small host surface) | ~100 to 300 ms | high | untrusted code without a VM; some compatibility cost |
 | **Kata / Firecracker / [Cloud Hypervisor](https://www.cloudhypervisor.org/)** | separate guest kernel (KVM) | highest (on Linux) | ~100 to 150 ms, faster from snapshot | moderate | untrusted, multi-tenant: the serious default |
@@ -198,6 +198,91 @@ github_readonly:
 - 🔑 **Binary identity is path plus hash, not intent.** A rule for `/usr/bin/python3` or `/bin/bash` covers *any* script that interpreter runs, and children inherit the rule. Keep interpreters out of rules that carry credentials.
 - 🦀 **TLS termination puts the supervisor in the trust path.** That is what makes L7 rules possible, and it also makes the supervisor a high-value target.
 - 🧱 **It is 0.1 software.** The docs change quickly and several details (Landlock compatibility defaults, global policies) are not fully documented yet.
+
+### 🔐 Sandlock: the supervisor pattern without containers or root
+
+[Sandlock](https://github.com/multikernel/sandlock) started as the research prototype mentioned in section 2 ([arXiv:2605.26298](https://arxiv.org/abs/2605.26298), a preliminary paper for the Agentic OS workshop at ASPLOS 2026) and is now an open-source project from Multikernel Technologies: Rust, Apache-2.0, at [v0.9.0](https://github.com/multikernel/sandlock/releases/tag/v0.9.0) as of 13 October 2026, after releases every two to three weeks since March. Where OpenShell wraps the supervisor pattern in containers or microVMs, Sandlock strips everything else away: **no root, no namespaces, no cgroups, no image**. It confines an ordinary child process with Landlock, seccomp-bpf and a seccomp-notification supervisor, and nothing more. That puts it squarely in section 3's shared-kernel tier, next to bubblewrap, but with a far richer policy than a list of bind mounts.
+
+```console
+$ sandlock run -w /tmp -r /usr -r /lib -m 512M -- python3 untrusted.py
+```
+
+It ships as a CLI, a Rust library, Python and Go SDKs over a C ABI, and an OCI runtime shim.
+
+🪜 **How confinement is applied.** The [architecture](https://github.com/multikernel/sandlock/blob/main/docs/architecture.md) is a fixed sequence after `fork()`. The child sets `no_new_privs`, applies Landlock (filesystem, TCP ports, IPC scoping), and installs a seccomp filter that denies some syscalls outright and routes others to a listener. It passes the listener's file descriptor to the parent, waits for the go-ahead, closes inherited descriptors and calls `exec`. The parent runs an async supervisor on that listener. The policy is therefore in force before the untrusted program runs its first instruction. What the supervisor handles:
+
+| Intercepted syscalls | What the supervisor does |
+|---|---|
+| `clone`, `fork`, `vfork` | caps the number of processes |
+| `mmap`, `munmap`, `brk`, `mremap`, `mprotect` | tracks memory against the limit |
+| `connect`, `sendto`, `sendmsg` | checks the destination, performs the call on the child's behalf, redirects HTTP to the filtering proxy |
+| `bind`, `getsockname` | binds on the child's behalf, with per-sandbox port virtualisation |
+| `openat`, `getdents64` | virtualises `/proc`, redirects reads and writes for the copy-on-write workdir |
+| `execve`, `execveat` | holds the call for an optional policy callback |
+| `getrandom`, timers | can inject deterministic randomness and freeze time |
+
+🧱 **Kernel floor, and failing closed.** By default it needs **Linux 6.12** (Landlock ABI 6, which added scoping for abstract unix sockets and signals) and refuses to start if a protection is unavailable. Callers can [opt out per protection](https://github.com/multikernel/sandlock/blob/main/docs/sandbox-reference.md#protection-opt-out): `allow_degraded` enforces a protection where the kernel supports it and silently skips it where it does not, and `disable` never enforces it. Strict is the right default, but many long-term-support distributions ship older kernels (Debian 12 has 6.1; RHEL 9 is based on 5.14), so a mixed fleet will tempt you towards `allow_degraded`, which quietly gives up exactly the protections section 1 worries about. Check what `sandlock check` reports instead of assuming.
+
+🔌 **TOCTOU: act on the child's behalf.** The classic weakness of a seccomp-notify supervisor is that when it answers "continue", the kernel re-reads pointer arguments from the child's memory, and another thread can change them in between. Sandlock never continues a mediated network call. It copies the `sockaddr` once, checks the copy, takes the socket with [`pidfd_getfd`](https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html), and performs `connect` itself, the same fd-delegation idea as OpenShell's `ADDFD` and Capsicum's broker. For `execve` arguments it freezes sibling threads and any process sharing the child's memory while it reads, and denies with `EPERM` when it cannot freeze them (for example when [Yama](https://docs.kernel.org/admin-guide/LSM/Yama.html) blocks `ptrace`). The paper is explicit that matching on arguments is an observation signal, not a containment boundary: containment comes from Landlock, seccomp and the network rules.
+
+🌐 **Network: deny by default, two enforcement paths.** With no rules, Landlock denies every TCP `connect` and seccomp blocks creating UDP, ICMP and raw sockets. Rules name protocol and destination (`--net-allow api.openai.com:443`, `udp://…`, `icmp://…`), a deny list wins any overlap, and raw ICMP is never exposed. The [network model](https://github.com/multikernel/sandlock/blob/main/docs/network.md) has two paths:
+
+- ⚡ **Direct.** A policy made only of TCP ports is enforced by Landlock in the kernel, with no per-call cost.
+- 🔀 **On-behalf.** Any rule naming a host, IP or CIDR, any UDP or ICMP rule, and any HTTP rule sends the call through the supervisor. The paper measured the median round trip rising from 20 µs to 55 µs.
+
+Hostnames are resolved once at start and pinned in a synthetic `/etc/hosts`, and wildcard hostnames (`*.example.com`) are not supported. With no UDP rule the sandbox cannot send DNS queries at all, which closes section 1's DNS covert channel. Two consequences follow from checking by address. A service that changes IPs mid-run breaks. And allowing a CDN-fronted host admits every other site on those addresses, unless an HTTP rule also checks the host name.
+
+🔏 **HTTP rules and credentials.** `--http-allow "POST api.openai.com/v1/chat/completions"` and `--http-deny "* */admin/*"` send matching traffic through a transparent proxy that checks method, host and path. For HTTPS the proxy must terminate TLS. `--http-inject-ca` generates a throwaway CA, keeps its private key in memory, and splices its certificate into the trust bundles you name when they are opened. Runtimes with their own certificate store, such as Node, need `NODE_EXTRA_CA_CERTS` pointed at it. Without this, `--net-allow host:443` allows raw TLS with no inspection, the same gap as OpenShell's `tls: skip`. **Credential injection** keeps a secret in the supervisor and adds it in the proxy *after* the rule check, so the agent never holds it:
+
+```console
+$ sandlock run \
+    --http-allow "POST api.openai.com/v1/*" \
+    --http-inject-ca /etc/ssl/certs/ca-certificates.crt \
+    --credential openai=env:OPENAI_API_KEY \
+    --http-auth "POST api.openai.com/* bearer openai" \
+    -r /usr -r /lib -r /etc -- python3 agent.py
+```
+
+That is section 8's credential brokering, without a separate gateway.
+
+📂 **Filesystem: Landlock plus a copy-on-write workdir.** Landlock grants the read and write paths. With `--workdir`, the supervisor also stages writes in an upper directory (reads resolve upper first, then lower), with no mount or user namespace. On exit it commits, aborts on error, or, with deferred handling, leaves the changes for a trusted caller to inspect and then commit or abort. `--dry-run` shows what a command would change, then throws it away. This is the most direct answer in this post to section 8's *persistence after the sandbox exits*: an injected edit to `.git/hooks` inside the workdir can be reviewed before it lands. The limits: only regular files, directories and symlinks are staged (FIFOs, sockets and device nodes go straight to the kernel and are never reverted), writes outside the workdir are not staged, and network effects are never rolled back.
+
+📉 **Resource limits without cgroups, and their weakness.** Memory is capped by counting address-space requests (`mmap`, `brk`, `mremap`, `shmget`), not resident pages, and stack growth is not counted. Processes are capped by refusing `clone` with `EAGAIN`, CPU is throttled with `SIGSTOP`/`SIGCONT` duty cycles, and file descriptors use `RLIMIT_NOFILE`. The paper calls these limits cooperative and says cgroups remain stronger against adversarial workloads. They stop a runaway build, not a determined fork-and-allocate attack.
+
+👀 **Virtualised views.** Because `openat` is intercepted, the supervisor can rewrite what `/proc` shows. The docs detail `/proc/net`: a loopback-only topology, and socket tables that list only sockets held by sandbox tasks. That is section 1's "views leak the host", handled for the network tables.
+
+🧩 **Composition: pipelines and planner/executor.** [Pipelines](https://github.com/multikernel/sandlock/blob/main/docs/pipelines.md) give each stage its own sandbox, joined by kernel pipes (`planner.cmd(...) | executor.cmd(...)`). The **execute-only agent** pattern splits an agent in two: the planner can reach the model but cannot read the data; the executor can read the data but has no network. That is a structural answer to the lethal trifecta from section 8, because no single process holds private data, untrusted content and a way out. The [prompt-injection guide](https://github.com/multikernel/sandlock/blob/main/docs/prompt_injection.md) is candid about the limits: the split bounds *capabilities*, not what flows through the pipe, and the executor's output can still carry sensitive data. A related **COW fork** initialises a process once and forks sandboxed clones from it, about 530 µs each.
+
+📜 **Least privilege by observation.** [`sandlock learn`](https://github.com/multikernel/sandlock/blob/main/docs/learn.md) runs a workload under observation and writes a profile of the paths, connections, HTTP methods and paths, and resource peaks it used, ready for `sandlock run -p`. It is a practical start on section 6's least privilege per task. Review the result: a profile learned from a run that an injected agent influenced records whatever that agent did.
+
+🐳 **Namespace-less containers.** [`sandlock-oci`](https://github.com/multikernel/sandlock/blob/main/crates/sandlock-oci/README.md) implements the OCI runtime interface, so containerd, CRI-O and Kubernetes can run workloads under Sandlock unprivileged, with checkpoint and restore. The isolation is Landlock and seccomp, not namespaces, so treat it as the shared-kernel tier, not as a stronger `runc`.
+
+🪆 **Nesting costs features.** The kernel allows one seccomp listener per task, so a Sandlock inside another Sandlock must run `no_supervisor`: Landlock plus a kernel-only deny filter, with no IP allow-list, resource limits, copy-on-write, `/proc` virtualisation or custom handlers.
+
+📏 **The numbers.** On the paper's workstation (Ryzen 5 5500U, Linux 6.18), Sandlock adds about 5 ms to startup, Redis throughput and p99 latency are within noise of bare metal, and the on-behalf network path adds about 35 µs per round trip. Rootful Docker is the only other system the paper measures; its figures for bubblewrap, gVisor and Firecracker are approximate, not measured.
+
+🛠️ **How it measures against this post.**
+
+| Theme in this post | Sandlock's answer |
+|---|---|
+| Shared kernel (section 1) | Unchanged, by design. Kernel bugs and side channels are out of scope, and the authors say adversarial multi-tenant workloads still need a microVM. |
+| Egress is the real prize (section 1) | Deny by default, a Landlock fast path, supervisor-mediated destinations, HTTP method and path rules, pinned DNS. |
+| Exfiltration through allowed channels (section 8) | Partly: HTTP rules limit methods and paths when TLS is intercepted. Raw TLS to an allowed host is not inspected, and an allowed endpoint can still receive data. |
+| Credential brokering (section 8) | Yes: injected in the proxy after the rule check. |
+| Fail closed (decision guide) | Yes by default; `allow_degraded` and `disable` weaken it per protection. |
+| Persistence after exit (section 8) | The strongest answer in this post: a copy-on-write workdir with dry-run and deferred review. Writes outside the workdir are not covered. |
+| Least privilege per task (section 6) | `sandlock learn` profiles, plus a separate sandbox per pipeline stage. |
+| Resource exhaustion (section 8) | Cooperative limits without cgroups; weaker than cgroups. |
+| The model as an exfiltration channel (section 8) | Not addressed by the sandbox. The planner/executor split reduces what the model sees. |
+
+**OpenShell or Sandlock?** They implement the same idea at different scales. OpenShell is a control plane for fleets: containers or microVMs as an outer fence, per-binary rules, a policy prover. Sandlock is one unprivileged process wrapper with about 5 ms of overhead, a copy-on-write workdir and composable pipelines. On a laptop, Sandlock is the lighter fit; for strangers' code, either one belongs inside a VM.
+
+⚠️ **Caveats worth knowing before relying on it:**
+
+- 🧪 **It is pre-1.0 and moves fast,** with a release every few weeks.
+- 🔬 **The evidence is early.** The paper is a preliminary workshop paper; its effectiveness check is ten deterministic allow/deny tests, the compatibility study covers four tools (`python3`, `make`, `node`, `pytest`), and I found no independent audit.
+- 🦀 **The supervisor is in the trust path.** It mediates connections and, with HTTPS inspection, terminates TLS, which makes it a high-value target.
+- 🐧 **Linux 6.12 or newer,** unless you opt out of protections.
 
 ### 🔎 The pattern across all of them
 
@@ -401,7 +486,7 @@ Symmetric cryptography such as AES-256 and SHA-256 stays safe. [Grover's algorit
 
 ## 📜 A decision guide
 
-- 📝 **Running an agent on your own laptop, your own code?** The OS-level tier (bubblewrap as in Claude Code, or Landlock plus seccomp as in Codex) is proportionate. Add a filtering proxy if the agent has network.
+- 📝 **Running an agent on your own laptop, your own code?** The OS-level tier (bubblewrap as in Claude Code, Landlock plus seccomp as in Codex, or Sandlock on Linux 6.12 or newer) is proportionate. Add a filtering proxy if the agent has network; Sandlock builds one in, along with a copy-on-write workdir you can review before changes land.
 - 🔥 **Running *your users'* code, multi-tenant?** Do not stop at containers. Use a **microVM** (Firecracker, E2B, Kata) or at least **gVisor**, and treat the VM as the boundary. Put OS-level confinement *inside* it as defence in depth.
 - 🛠️ **A narrow, pure-compute tool?** Consider **WASM**: the strongest per-feature boundary and trivially dense.
 - 📦 **Whatever you pick:** control egress by domain with audit, strip ambient credentials (environment, metadata, mounted sockets, `~/.ssh`), cap resources with cgroups (fork bombs are cheap), protect the files that run *after* the sandbox exits (git hooks, editor tasks, `.envrc`; see section 8), and **fail closed**. A sandbox that silently runs unconfined is the worst outcome.
@@ -423,6 +508,7 @@ Point-in-time (checked October 2026); vendor docs and 2026 analyses, so verify b
 - AWS: [hosting coding agents on Bedrock AgentCore](https://aws.amazon.com/blogs/machine-learning/its-safe-to-close-your-laptop-now-hosting-coding-agents-on-amazon-bedrock-agentcore/) · [CSA, AgentCore as enterprise attack surface](https://labs.cloudsecurityalliance.org/research/csa-research-note-bedrock-agentcore-enterprise-attack-surfac/)
 - GPU isolation: [Northflank, GPU sandboxes](https://northflank.com/blog/gpu-sandboxes) · [GPU isolation fault line: gVisor, Kata, Edera](https://bex.co/blog/2026/09/11/gpu-isolation-fault-line-gvisor-kata-edera) · [NVIDIA Confidential Containers reference architecture](https://docs.nvidia.com/datacenter/cloud-native/confidential-containers/latest/overview.html) · [gVisor GPU support](https://gvisor.dev/docs/user_guide/gpu/) · [Multi-tenant GPU security](https://introl.com/blog/multi-tenant-gpu-security-isolation-strategies-shared-infrastructure-2025) · [Blackwell confidential-computing LLM serving (arXiv:2606.23969)](https://arxiv.org/pdf/2606.23969) · [One GPU per sandbox: Modal vs E2B and Daytona](https://bex.co/blog/2026/09/05/modal-gpu-sandbox-vs-daytona-e2b-cpu-isolation) · [What are GPU sandboxes?](https://www.thundercompute.com/blog/what-are-gpu-sandboxes) · [E2B vs Daytona vs Modal](https://drydock.si/guides/e2b-vs-daytona-vs-modal)
 - Research: [Tyche (arXiv:2507.12364)](https://arxiv.org/pdf/2507.12364) · [AI Sandboxes: threat model and taxonomy (arXiv:2606.18532)](https://arxiv.org/html/2606.18532v1) · [SandboxEscapeBench (arXiv:2603.02277)](https://arxiv.org/html/2603.02277v1) · [Learned capability governance (arXiv:2604.11839)](https://arxiv.org/abs/2604.11839) · [MAC for LLM agents (arXiv:2601.11893)](https://arxiv.org/pdf/2601.11893) · [Unprivileged eBPF dynamic sandboxing (arXiv:2308.01983)](https://arxiv.org/pdf/2308.01983) · [Kernel compartmentalization (arXiv:2404.08716)](https://arxiv.org/pdf/2404.08716) · [Cosmonic, choosing an agent sandbox](https://cosmonic.com/ai-sandbox/choosing-an-agent-sandbox/) · [yeet.cx, sandbox an AI coding agent on Linux](https://yeet.cx/topical-takes/sandbox-ai-coding-agent-linux) · [h5i, sandboxing AI agents landscape](https://h5i.dev/blog/sandboxing-ai-agents-landscape/)
+- Sandlock: [repository](https://github.com/multikernel/sandlock) · [architecture](https://github.com/multikernel/sandlock/blob/main/docs/architecture.md) · [network model](https://github.com/multikernel/sandlock/blob/main/docs/network.md) · [protection opt-out](https://github.com/multikernel/sandlock/blob/main/docs/sandbox-reference.md#protection-opt-out) · [prompt-injection defenses](https://github.com/multikernel/sandlock/blob/main/docs/prompt_injection.md) · [sandlock-oci](https://github.com/multikernel/sandlock/blob/main/crates/sandlock-oci/README.md) · [paper (arXiv:2605.26298)](https://arxiv.org/html/2605.26298v1)
 - NVIDIA OpenShell: [repository](https://github.com/NVIDIA/OpenShell) · [architecture](https://docs.nvidia.com/openshell/latest/about/architecture) · [support matrix](https://docs.nvidia.com/openshell/latest/about/support-matrix) · [sandbox runtimes](https://docs.nvidia.com/openshell/latest/how-it-works/sandboxes/runtimes) · [policies](https://docs.nvidia.com/openshell/latest/how-it-works/policies/overview) · [network rules](https://docs.nvidia.com/openshell/latest/how-it-works/policies/network-rules) · [policy advisor](https://docs.nvidia.com/openshell/latest/how-it-works/policies/advisor) · [policy prover](https://docs.nvidia.com/openshell/latest/how-it-works/policies/prover) · [NVIDIA press release, Agent Toolkit and OpenShell (16 March 2026)](https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Ignites-the-Next-Industrial-Revolution-in-Knowledge-Work-With-Open-Agent-Development-Platform/default.aspx) · [Let's Data Science, Open Agent Safety Platform and Sentry](https://letsdatascience.com/news/nvidia-launches-hardware-backed-ai-agent-safety-platform-7ff43d11) · [NVIDIA, OpenShell works with Claude Code](https://perspectives.nvidia.com/nvidia-openshell/agent-sandbox-works-claude-code-out-of-box/)
 - Production approximations of composable isolation: [OpenHCL](https://openvmm.dev/guide/user_guide/openhcl.html) · [OpenVMM repository](https://github.com/microsoft/openvmm) · [AMD SEV-SNP white paper (VMPLs)](https://www.amd.com/content/dam/amd/en/documents/epyc-business-docs/white-papers/SEV-SNP-strengthening-vm-isolation-with-integrity-protection-and-more.pdf) · [COCONUT-SVSM](https://github.com/coconut-svsm/svsm) · [Azure confidential VMs](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-vm-overview) · [AWS Nitro Enclaves](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html) · [Android pKVM architecture](https://source.android.com/docs/core/virtualization/architecture) · [Confidential Containers](https://confidentialcontainers.org/) · [Arm CCA](https://www.arm.com/architecture/security-features/arm-confidential-compute-architecture)
 - Capsicum: [capsicum(4)](https://man.freebsd.org/capsicum(4)) · [cap_enter(2)](https://man.freebsd.org/cap_enter(2)) · [cap_rights_limit(2)](https://man.freebsd.org/cap_rights_limit(2)) · [libcasper(3)](https://man.freebsd.org/libcasper(3)) · [Capsicum: practical capabilities for UNIX (USENIX Security 2010)](https://www.cl.cam.ac.uk/research/security/capsicum/papers/2010usenix-security-capsicum-website.pdf) · [Capsicum for Linux](https://github.com/google/capsicum-linux)

@@ -1,0 +1,15 @@
+{
+  "IndexDocument": { "Suffix": "index.html" },
+  "ErrorDocument": { "Key": "error.html" },
+  "RoutingRules": [
+    {
+      "Condition": { "KeyPrefixEquals": "blog/2026/sandboxing-ai-agents-on-linux" },
+      "Redirect": {
+        "Protocol": "https",
+        "HostName": "gctl.io",
+        "ReplaceKeyPrefixWith": "blog/2026/sandboxing-untrusted-ai-agents-on-linux",
+        "HttpRedirectCode": "301"
+      }
+    }
+  ]
+}

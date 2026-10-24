@@ -26,10 +26,26 @@
         {% if site.search_enabled %}
           <li class="nav-item">
             <button id="search-toggle" type="button" title="Search (ctrl k)" aria-label="Open search">
-              <span class="nav-link"><span class="search-hint">ctrl k</span> <i class="fa-solid fa-magnifying-glass"></i></span>
+              <span class="nav-link"><i class="fa-solid fa-magnifying-glass"></i></span>
             </button>
           </li>
         {% endif %}
+        {% comment %} On a post, link to its source file; elsewhere, to the posts folder. {% endcomment %}
+        {% assign gh_repo = 'https://github.com/ishworgurung/ishworgurung.github.io' %}
+        {% if page.collection == 'posts' %}
+          {% assign gh_url = page.path | prepend: '/blob/master/' | prepend: gh_repo %}
+          {% assign gh_title = 'Read this post’s source on GitHub' %}
+        {% else %}
+          {% assign gh_url = gh_repo | append: '/tree/master/_posts' %}
+          {% assign gh_title = 'Read the posts on GitHub' %}
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-github" href="{{ gh_url }}" target="_blank" rel="noopener" title="{{ gh_title }}">
+            <i class="fa-brands fa-github" aria-hidden="true"></i>
+            <span class="nav-github-label">Source</span>
+            <i class="fa-solid fa-arrow-up-right-from-square nav-github-ext" aria-hidden="true"></i>
+          </a>
+        </li>
       </ul>
 
       <div class="navbar-social social">{% social_links %}</div>
