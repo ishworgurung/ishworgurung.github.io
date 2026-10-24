@@ -64,8 +64,11 @@ is better than the five-line loop that rebuilds `any()` by hand. The rule is not
 I have it installed. If you write Rust with an AI assistant, it is an easy way to get "just write the loop" applied without having to ask.
 
 ```bash
-claude plugin install beautiful-rust --marketplace morganlinton/BeautifulRust
+claude plugin marketplace add morganlinton/BeautifulRust
+claude plugin install beautiful-rust@beautiful-rust
 ```
+
+Or from inside a Claude Code session, run `/plugin marketplace add morganlinton/BeautifulRust`, then `/plugin install beautiful-rust@beautiful-rust`.
 
 Even if you never use it, the five sources it draws from make a good reading list.
 
