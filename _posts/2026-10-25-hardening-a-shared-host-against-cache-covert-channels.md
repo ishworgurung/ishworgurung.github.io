@@ -22,6 +22,7 @@ Two things up front.
 - **SMT sibling.** One of the two hardware threads on a single core (Intel calls SMT Hyper-Threading). Siblings share the L1 and L2 caches, the TLB, branch predictors and execution ports. ([Simultaneous multithreading](https://en.wikipedia.org/wiki/Simultaneous_multithreading))
 - **L3 domain.** The set of CPUs that share one last-level cache: usually a socket on Intel, a core complex (CCX) on AMD EPYC. Two VMs in different L3 domains do not share a cache at all.
 - **cgroup v2 and cpuset.** Linux control groups put processes into a tree and apply limits to each branch. The cpuset controller limits which CPUs and memory nodes a branch may use. ([Linux cgroup v2](https://docs.kernel.org/admin-guide/cgroup-v2.html))
+- **Slice.** A systemd unit that is a branch of that tree. Services and VMs started "in" a slice inherit its limits. ([systemd.slice](https://www.freedesktop.org/software/systemd/man/latest/systemd.slice.html))
 - **resctrl, CAT, MBA, CMT and MBM.** `resctrl` is the Linux filesystem for the processor's cache and memory-bandwidth controls: Cache Allocation Technology (CAT) reserves cache ways, Memory Bandwidth Allocation (MBA) throttles memory traffic, and Cache Monitoring (CMT) and Memory Bandwidth Monitoring (MBM) report usage per group. AMD exposes the same controls under the same interface. ([Linux resctrl](https://docs.kernel.org/filesystems/resctrl.html))
 - **Capacity bitmask (CBM).** A resctrl allocation written as a bitmask, one bit per cache way. `0x0f` means "the lowest four ways".
 - **KSM.** Kernel Samepage Merging, which keeps one shared copy of identical memory pages across VMs. ([Linux KSM](https://docs.kernel.org/admin-guide/mm/ksm.html))
@@ -30,7 +31,7 @@ Two things up front.
 
 </div>
 
-> Point-in-time (late October 2026). Commands assume a recent mainline kernel, cgroup v2, systemd and util-linux 2.41 or later, run as root. Try them on a host you can reboot. Example output is illustrative; your topology will differ.
+> Point-in-time (late October 2026). Commands assume a recent mainline kernel, cgroup v2, systemd 261 or later and util-linux 2.41 or later, run as root. Try them on a host you can reboot. Example output is illustrative; your topology will differ.
 
 ## 🗺️ Step 0: map the machine
 
@@ -90,7 +91,7 @@ coresched get --source "$VMM_PID"
 
 Each VM gets its own cookie, so a VM's two vCPUs can sit on one core's siblings, but two different VMs never do. Three limits:
 
-- The kernel must be built with `CONFIG_SCHED_CORE`.
+- The kernel must be built with `CONFIG_SCHED_CORE`, and SMT must be on: with SMT off, `coresched` refuses to run ("Core scheduling is not supported on this system"). It is an alternative to turning SMT off, not an addition.
 - It is not airtight. The kernel documentation lists a short window, while the sibling is being told to switch, in which untrusted tasks can still run side by side, and it says core scheduling does not stop MDS-style leaks between a sibling in user mode and one running kernel code. If you can afford SMT off, it is the stronger choice.
 - It only stops *simultaneous* sharing. Tenants can still take turns on a core, which [step 2](#-step-2-pin-each-domain-to-its-own-cores) removes and [step 4](#-step-4-keep-the-cpu-bug-mitigations-on-and-flush-on-switch) cleans up after. ([Linux core scheduling](https://docs.kernel.org/admin-guide/hw-vuln/core-scheduling.html) · [coresched(1)](https://man7.org/linux/man-pages/man1/coresched.1.html))
 
@@ -98,39 +99,66 @@ Each VM gets its own cookie, so a VM's two vCPUs can sit on one core's siblings,
 
 Without pinning, the scheduler moves vCPU threads wherever there is room, so over a day every tenant runs on every core and leaves state behind for whoever comes next. Pinning fixes each domain to the cores in your table for the life of the VM, as AWS Nitro does for fixed-performance instances.
 
-With cgroup v2 cpusets, give each domain its own branch of the tree and make it a **partition root**, which means its CPUs are exclusive: no sibling cgroup may use them.
+With cgroup v2 cpusets, give each domain its own branch of the tree and make it a **partition root**. Its CPUs are then exclusive: no cgroup outside the partition may use them.
 
-```sh
-cd /sys/fs/cgroup
-echo +cpuset > cgroup.subtree_control
+On a systemd host, do this with slice units, not by making directories under `/sys/fs/cgroup` yourself. systemd owns the cgroup tree, and its [delegation rules](https://systemd.io/CGROUP_DELEGATION/) say plainly not to create your own cgroups below the root: "all you do is ask for trouble". Two details shape the units:
 
-mkdir tenant-a
-echo 2-7 > tenant-a/cpuset.cpus
-echo 0   > tenant-a/cpuset.mems
-echo root > tenant-a/cpuset.cpus.partition   # or "isolated" to also turn off load balancing
-cat tenant-a/cpuset.cpus.partition            # "root"; "root invalid (...)" says why it failed
+- **A dash in a slice name is a level in the tree.** `tenant-a.slice` lives inside `tenant.slice`, at `/sys/fs/cgroup/tenant.slice/tenant-a.slice`.
+- **A partition is only valid if its parent is one.** So make `tenant.slice` a partition holding every tenant CPU, and each tenant a partition inside it.
+
+```ini
+# /etc/systemd/system/tenant.slice
+[Slice]
+AllowedCPUs=2-31
+CPUSetPartition=root
 ```
 
-A valid partition already keeps every other cgroup off its CPUs. To also keep the host's own work on the housekeeping cores rather than spread over whatever is left, confine the system slices and the default interrupt affinity:
+```ini
+# /etc/systemd/system/tenant-a.slice
+[Slice]
+AllowedCPUs=2-7
+AllowedMemoryNodes=0
+CPUSetPartition=root
+```
+
+Write `tenant-b.slice` (CPUs 16-23) and `tenant-c.slice` (24-31) the same way, with `AllowedMemoryNodes=` set to the NUMA node of their socket. Then load and check them:
 
 ```sh
-systemctl set-property --runtime system.slice AllowedCPUs=0-1
-systemctl set-property --runtime user.slice   AllowedCPUs=0-1
+systemctl daemon-reload
+systemctl start tenant-a.slice tenant-b.slice tenant-c.slice
+cat /sys/fs/cgroup/tenant.slice/tenant-a.slice/cpuset.cpus.partition         # "root"; "root invalid (<reason>)" says why not
+cat /sys/fs/cgroup/tenant.slice/tenant-a.slice/cpuset.cpus.effective         # 2-7
+```
+
+`CPUSetPartition=` arrived in systemd 261, and `CPUSetPartition=isolated` also turns off load balancing inside the partition. On older systemd, `AllowedCPUs=` alone gives the same placement, but nothing enforces exclusivity, so make sure no two slices list the same CPU. Always read `cpuset.cpus.effective` afterwards: where the cpuset controller is not available to a unit, as in a user session where it is not delegated, systemd starts the unit anyway and leaves its CPUs unrestricted.
+
+A partition already keeps every other cgroup off its CPUs. To also keep the host's own work on the housekeeping cores rather than spread over whatever is left, confine the system slices and the default interrupt affinity:
+
+```sh
+systemctl set-property system.slice  AllowedCPUs=0-1
+systemctl set-property user.slice    AllowedCPUs=0-1
+systemctl set-property machine.slice AllowedCPUs=0-1   # where libvirt puts VMs by default
 # and on the kernel command line: irqaffinity=0-1
 ```
 
-`irqaffinity` does not move "managed" interrupts, such as NVMe queues, which the kernel spreads over all CPUs. `isolcpus=managed_irq,<cpus>` keeps those off the tenant cores where the hardware allows it.
+`set-property` persists across reboots; add `--runtime` while you experiment. `irqaffinity` does not move "managed" interrupts, such as NVMe queues, which the kernel assigns itself. `isolcpus=managed_irq,2-31` asks the kernel to keep those off the tenant CPUs. That is best-effort: it only works for device queues whose interrupt mask also includes a housekeeping CPU.
 
-Firecracker's jailer can place each microVM in its cgroup before the guest runs a single instruction:
+Start each VM inside its tenant's slice. For QEMU, a transient scope:
 
 ```sh
-jailer --id vm-a --exec-file /usr/bin/firecracker --uid 1001 --gid 1001 \
-  --cgroup-version 2 --parent-cgroup tenant-a \
-  --cgroup cpuset.cpus=2-7 --cgroup cpuset.mems=0 \
-  -- --api-sock /run/firecracker.socket
+systemd-run --slice=tenant-a.slice --scope -- qemu-system-x86_64 ...
 ```
 
-For a one-off VM outside the jailer, `systemd-run --scope -p AllowedCPUs=2-7 -p AllowedMemoryNodes=0 -- qemu-system-x86_64 ...` does the same.
+For Firecracker, run the jailer as a transient service in the slice, and point it at the cgroup systemd made for that service:
+
+```sh
+systemd-run --slice=tenant-a.slice --unit=fc-vm-a -- \
+  jailer --id vm-a --exec-file /usr/bin/firecracker --uid 1001 --gid 1001 \
+    --cgroup-version 2 --parent-cgroup tenant.slice/tenant-a.slice/fc-vm-a.service \
+    -- --api-sock /run/firecracker.socket
+```
+
+With `--cgroup-version 2` and no `--cgroup` values, the jailer creates no cgroup of its own; it only moves the process into the `--parent-cgroup` path if it exists, which here is where systemd already put it. Do not leave `--cgroup-version` out: it defaults to 1, cgroup v1, and the jailer then tries to build a v1 hierarchy.
 
 If tenants share a domain's cores (several VMs inside tenant A), pin each vCPU thread to its own core with `taskset -pc` so they do not take turns either. Firecracker names its vCPU threads `fc_vcpu 0`, `fc_vcpu 1` and so on, which makes them easy to find under `/proc/<pid>/task/*/comm`.
 
@@ -215,7 +243,7 @@ cat /sys/fs/resctrl/info/L3/bit_usage     # who uses which ways today
 cat /sys/fs/resctrl/info/L3/sparse_masks  # 0 means each mask must be one contiguous run
 ```
 
-Some ways are also written by devices, not only by CPUs. On Intel Xeon this is DDIO, where network cards write incoming packets straight into the L3, the mechanism [NetCAT]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-seventeen-years-of-cross-tenant-channels) abused. DDIO uses two ways by default, and on the 11-way Skylake server measured in [Farshin et al. (USENIX ATC 2020)](https://www.usenix.org/conference/atc20/presentation/farshin) those were the two leftmost ways, `0x600`. resctrl does not show DDIO's ways on Intel, so check your platform's documentation. On recent AMD EPYC parts, resctrl's `io_alloc` and `io_alloc_cbm` files show and set the ways device traffic goes to, and `bit_usage` marks them `H` (hardware only) or `X` (hardware and a group). Either way, keep tenants off the device ways and leave them to the host.
+Some ways are also written by devices, not only by CPUs. On Intel Xeon this is DDIO, where network cards write incoming packets straight into the L3, the mechanism [NetCAT]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-seventeen-years-of-cross-tenant-channels) abused. DDIO uses two ways by default, and on the 11-way Skylake server measured in [Farshin et al. (USENIX ATC 2020)](https://www.usenix.org/conference/atc20/presentation/farshin) those were the two leftmost ways, `0x600`. resctrl does not show DDIO's ways on Intel, so check your platform's documentation. On AMD CPUs with Smart Data Cache Injection Allocation Enforcement (SDCIAE), recent kernels add resctrl `io_alloc` and `io_alloc_cbm` files that show and set the ways device traffic goes to (enabling it uses up the highest group ID), and `bit_usage` marks them `H` (hardware only) or `X` (hardware and a group). Either way, keep tenants off the device ways and leave them to the host.
 
 Every task starts in the root group, which by default owns every way. Shrink it first. With an 11-way cache (`7ff`) and the two DDIO ways at `600`, one possible split for L3 domain 1 is:
 
@@ -260,8 +288,8 @@ A covert channel needs a receiver that can measure something. Some measurements 
   ls -l /sys/class/powercap/intel-rapl:*/energy_uj   # expect -r-------- root
   ```
 
-- **Performance counters in guests.** A virtual PMU gives a guest exact cache-miss counts, a far better receiver than timing loads. Unless guests need profiling, turn it off: host-wide with `kvm.enable_pmu=0`, or per VM in QEMU with `-cpu host,pmu=off`. Check from inside each guest, whatever the VMM: `perf stat -e cache-misses true` should report the event as not supported.
-- **Performance counters on the host.** Keep `kernel.perf_event_paranoid` at its default of 2. From 1 up, unprivileged processes (a VMM after it drops privileges, an agent's helper) cannot count system-wide events; 2 also blocks kernel profiling. They can still count their *own* events, which is enough for a receiver, so some distributions patch in a stricter level 3 that blocks unprivileged use entirely. Use it where it exists.
+- **Performance counters in guests.** A virtual PMU gives a guest exact cache-miss counts, a far better receiver than timing loads. Unless guests need profiling, turn it off: host-wide with `kvm.enable_pmu=0`, or per VM in QEMU with `pmu=off` (QEMU turns the PMU on by default for `-cpu host` and `-cpu max` under KVM, so write `-cpu host,pmu=off`). Firecracker hides the architectural PMU from Intel guests by zeroing CPUID leaf `0xA`. Check from inside each guest, whatever the VMM: `perf stat -e cache-misses true` should report the event as not supported.
+- **Performance counters on the host.** Keep `kernel.perf_event_paranoid` at its default of 2. From 1 up, unprivileged processes (a VMM after it drops privileges, an agent's helper) cannot count system-wide events; 2 also blocks kernel profiling. They can still count their *own* events, which is enough for a receiver, so some distributions, Debian among them, patch in a stricter level 3 that blocks perf entirely for users without `CAP_SYS_ADMIN`. Use it where it exists.
 
 Do not bother trapping `rdtsc`. It is slow, and a counting thread rebuilds a fine-grained clock anyway ([Fantastic Timers](https://gruss.cc/files/fantastictimers.pdf)).
 
@@ -269,11 +297,18 @@ Do not bother trapping `rdtsc`. It is slow, and a counting thread rebuilds a fin
 
 The CPU-contention and storage channels in OpenAI's report did not need a shared cache at all: one agent's load changed the other's speed. Hard caps make each tenant's performance independent of its neighbours.
 
-```sh
-echo "600000 100000" > /sys/fs/cgroup/tenant-a/cpu.max   # 6 CPUs' worth, in every 100 ms window
-echo "259:0 rbps=200000000 wbps=100000000 riops=20000 wiops=10000" \
-  > /sys/fs/cgroup/tenant-a/io.max                       # per disk, by major:minor
+Add them to the `[Slice]` section of the tenant's slice from step 2:
+
+```ini
+# /etc/systemd/system/tenant-a.slice, [Slice] section, continued
+CPUQuota=600%
+IOReadBandwidthMax=/dev/nvme0n1 200M
+IOWriteBandwidthMax=/dev/nvme0n1 100M
+IOReadIOPSMax=/dev/nvme0n1 20000
+IOWriteIOPSMax=/dev/nvme0n1 10000
 ```
+
+systemd writes these to the cgroup's `cpu.max` (here `600000 100000`: six CPUs' worth in every 100 ms period) and `io.max`. Sizes are in units of 1,000, so `200M` is 200,000,000 bytes per second. The systemd documentation spells out the property that matters here: the I/O limits are "not work-conserving", so a tenant cannot borrow idle capacity even when the disk is free.
 
 With step 2's exclusive cores, `cpu.max` mostly matters inside a domain. `io.max` matters more: the "acoustic modem" channel in the report was bursts of writes to shared storage. Better still, give each tenant its own disk or volume, and its own instances of every shared service (DNS resolver, HTTP proxy, package mirror, TLS cache), as in [layer 3]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#layer-3-remove-shared-software-state).
 
@@ -293,7 +328,7 @@ echo "ksm run:      $(cat /sys/kernel/mm/ksm/run)  shared pages: $(cat /sys/kern
 echo "cmdline:      $(tr ' ' '\n' < /proc/cmdline | grep -E '^(mitigations|nosmt|spectre_v2_user|l1d_flush|kvm|irqaffinity)' | tr '\n' ' ')"
 echo "perf paranoid: $(cat /proc/sys/kernel/perf_event_paranoid)"
 grep -i -l -r 'vulnerable' /sys/devices/system/cpu/vulnerabilities/ 2>/dev/null | sed 's/^/VULNERABLE:   /'
-for g in /sys/fs/cgroup/tenant-*; do
+for g in /sys/fs/cgroup/tenant.slice/tenant-*.slice; do
   [ -d "$g" ] && echo "$(basename "$g"): cpus=$(cat "$g/cpuset.cpus.effective") partition=$(cat "$g/cpuset.cpus.partition")"
 done
 if [ -d /sys/fs/resctrl/info ]; then
@@ -308,7 +343,7 @@ fi
 The only convincing test is a channel that worked before and does not work after. Use published research code between two of your own test VMs, placed the way real tenants would be:
 
 - [Mastik](https://github.com/0xADE1A1DE/Mastik), Yuval Yarom's toolkit, provides the building blocks: Prime+Probe on the L1, L2 and last-level caches, Flush+Reload, Flush+Flush and more, on Intel x86-64. You write a small sender and receiver around them.
-- [CJAG](https://github.com/IAIK/CJAG), from the group behind [Hello from the Other Side]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-seventeen-years-of-cross-tenant-channels), is a ready-made cross-VM LLC covert channel: one binary is the sender, `-r` makes it the receiver, and the two agree on cache sets with no shared memory. It needs huge pages inside each guest (`vm.nr_hugepages`).
+- [CJAG](https://github.com/IAIK/CJAG), from the group behind [Hello from the Other Side]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-seventeen-years-of-cross-tenant-channels), is a ready-made cross-VM LLC covert channel: one binary is the sender, `-r` makes it the receiver, and the two agree on cache sets with no shared memory. It needs huge pages inside each guest (`vm.nr_hugepages`). Its authors note that auto-detection often fails inside VMs, so pass the *host* CPU's cache size, ways, slices and miss threshold by hand (`./cjag --help`). It targets Intel CPUs whose number of cache slices is a power of two.
 
 Measure the bit error rate and bits per second before you start, then after each step. What you should expect to see:
 
@@ -331,10 +366,10 @@ cat /sys/fs/resctrl/tenant-b/mon_data/mon_L3_01/llc_occupancy    # bytes of L3 t
 cat /sys/fs/resctrl/tenant-b/mon_data/mon_L3_01/mbm_total_bytes  # memory traffic so far; sample and diff
 ```
 
-Or per cgroup with `perf`, assuming each tenant has its own cgroup as tenant A does in step 2:
+Or per slice with `perf`, which takes the cgroup path below `/sys/fs/cgroup`:
 
 ```sh
-perf stat -a -G tenant-b -e LLC-loads,LLC-load-misses -I 10
+perf stat -a -G tenant.slice/tenant-b.slice -e LLC-loads,LLC-load-misses -I 10
 ```
 
 `LLC-loads` and `LLC-load-misses` are generic names that not every CPU supports; `perf list` shows what yours offers.
@@ -345,7 +380,7 @@ A covert channel looks like a *regular* signal: cache misses or memory traffic s
 
 "Closed" here means closed *between trust domains*, once the step is in place and the audit in step 8 says it still is. Each holds only while the steps before it do: cache partitioning means little if two tenants still share a core.
 
-- 🧵 **L1 and L2 caches, the TLB, branch predictors and execution ports**, by steps 1 and 2. No two domains run on one core at the same time, or one after the other, so none of the core-private state is shared. This is the largest class of channels, and the fastest: it covers TLBleed, port contention and most of the MDS family.
+- 🧵 **L1 and L2 caches, the TLB, branch predictors and execution ports**, by steps 1 and 2. No two domains run on one core at the same time, or one after the other, so none of the core-private state is shared. That covers TLBleed and port contention, and, with step 4's mitigations on, most of the MDS family.
 - 🧹 **State left behind on a shared core**, by step 4. Where a core is still shared in time, the predictor barrier and L1 flush stop the next tenant reading what the last one left. Current microcode and `mitigations=auto,nosmt` keep the known transient-execution bugs from turning a covert channel into a side channel against an agent that is not cooperating.
 - 🔁 **Flush+Reload and Flip Feng Shui across VMs**, by step 3. Both need a physical page shared between tenants. With KSM off there is none.
 - 🧱 **Last-level cache Prime+Probe**, by step 5 for domains that share an L3, and completely by step 0's placement for domains that do not. A sender can only evict lines in its own ways, so it can no longer push the receiver's lines out. Leaving the device (DDIO) ways to the host also keeps tenant data out of the part of the cache that network traffic, and so NetCAT, reaches.
@@ -359,23 +394,23 @@ Together these remove every channel the [previous post's table]({% post_url 2026
 After every step above, two tenants on one host still share:
 
 - 🚌 **Memory controllers, the bus and DRAM banks.** This is the fastest of what remains: [DRAMA (USENIX Security 2016)](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/pessl) built a covert channel of up to 2 Mbit/s through DRAM row buffers, and it works across CPUs. MBA slows bus contention but not row-buffer timing, and nothing in mainline Linux colours DRAM banks. Separate NUMA nodes per domain, with each tenant's memory bound to its own node (`cpuset.mems`), keep tenants off each other's DIMMs and memory controller, if the host has enough nodes.
-- 🌡️ **Frequency, power and temperature.** These are package-wide. [Hertzbleed]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-seventeen-years-of-cross-tenant-channels) needs no shared cache at all. Pinning the frequency (turning off turbo and setting a fixed governor) narrows it, at a real performance cost.
+- 🌡️ **Frequency, power and temperature.** These are package-wide. [Hertzbleed]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}#-seventeen-years-of-cross-tenant-channels) needs no shared cache at all. The [Hertzbleed authors](https://www.hertzbleed.com/)' workaround is to disable frequency boost (Turbo Boost on Intel, Turbo Core or Precision Boost on AMD), in the BIOS or through the frequency-scaling driver, at a real performance cost.
 - 🕸️ **The on-die interconnect and coherence directory**, unless the tenants are in different L3 domains, and even then the interconnect may be shared.
 - 🎮 **The GPU**, if they share one, MIG or not.
 - 🗄️ **Every service both can reach**: storage, logging, metrics, the model-serving cluster.
 
-Apart from DRAM, these are slower and noisier than an L1 or LLC channel, and every one of them still works for a patient sender with error correction. That is why the steps above are a way of *lowering the bandwidth* between agents of the same trust level, and why agents of different trust levels belong on different hosts.
+None of these needs a shared core or shared cache ways, and every one of them still works for a patient sender with error correction. That is why the steps above are a way of *lowering the bandwidth* between agents of the same trust level, and why agents of different trust levels belong on different hosts.
 
 ## ✅ The runbook on one page
 
 1. Map siblings, L3 domains and NUMA nodes; write the placement table.
 2. SMT off (`nosmt`), or core scheduling with one cookie per VM.
-3. One exclusive cpuset partition per domain; host work and interrupts on their own cores; pin vCPUs.
+3. One systemd slice per domain under `tenant.slice`, each a cpuset partition (`CPUSetPartition=root`); host slices and interrupts on their own cores; VMs started inside their slice; vCPUs pinned.
 4. KSM off (`echo 2`), persisted; `mem-merge=off` for QEMU.
 5. `mitigations=auto,nosmt`, current microcode, `spectre_v2_user=on`, `kvm-intel.vmentry_l1d_flush=always` where it applies.
 6. Domains that share an L3: resctrl groups with non-overlapping masks, device (DDIO) ways left to the host, MBA caps, set up at boot.
 7. No vPMU or energy counters for guests; `perf_event_paranoid` at 2, or 3 where the distribution offers it.
-8. Hard `cpu.max` and `io.max`; per-tenant disks and service instances.
+8. Hard CPU and I/O limits on each slice (`CPUQuota=`, `IO*Max=`); per-tenant disks and service instances.
 9. Audit nightly; re-run Mastik and CJAG after every kernel, microcode or hardware change; watch per-group cache and memory traffic for periodic signals.
 10. For agents that must never talk: none of the above. Separate hosts.
 
@@ -386,7 +421,7 @@ Point-in-time (checked October 2026).
 - Image: "Cache timing as covert chat channel" by [113 (@0x113d)](https://x.com/0x113d) on X, quote-posting [@scaling01](https://x.com/scaling01)
 - Previous posts: [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}) · [Sandboxing untrusted AI agents on Linux]({% post_url 2026-10-21-sandboxing-untrusted-ai-agents-on-linux %})
 - Kernel: [cgroup v2 and cpuset partitions](https://docs.kernel.org/admin-guide/cgroup-v2.html) · [resctrl](https://docs.kernel.org/filesystems/resctrl.html) · [core scheduling](https://docs.kernel.org/admin-guide/hw-vuln/core-scheduling.html) · [attack vector controls](https://docs.kernel.org/admin-guide/hw-vuln/attack_vector_controls.html) · [old microcode](https://docs.kernel.org/admin-guide/hw-vuln/old_microcode.html) · [sysctl: perf_event_paranoid](https://docs.kernel.org/admin-guide/sysctl/kernel.html#perf-event-paranoid) · [L1TF](https://docs.kernel.org/admin-guide/hw-vuln/l1tf.html) · [L1D flushing](https://docs.kernel.org/admin-guide/hw-vuln/l1d_flush.html) · [KSM](https://docs.kernel.org/admin-guide/mm/ksm.html) · [kernel parameters](https://docs.kernel.org/admin-guide/kernel-parameters.html) · [powercap](https://docs.kernel.org/power/powercap/powercap.html)
-- Tools: [coresched(1)](https://man7.org/linux/man-pages/man1/coresched.1.html) · [hwloc](https://www.open-mpi.org/projects/hwloc/) · [systemd resource control](https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html) · [Firecracker jailer](https://github.com/firecracker-microvm/firecracker/blob/main/docs/jailer.md) · [Firecracker production host setup](https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md) · [Kubernetes CPU management policies](https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/) · [Kubernetes node resource managers](https://kubernetes.io/docs/concepts/policy/node-resource-managers/)
+- Tools: [coresched(1)](https://man7.org/linux/man-pages/man1/coresched.1.html) · [hwloc](https://www.open-mpi.org/projects/hwloc/) · [systemd resource control](https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html) · [systemd.slice](https://www.freedesktop.org/software/systemd/man/latest/systemd.slice.html) · [systemd cgroup delegation](https://systemd.io/CGROUP_DELEGATION/) · [Firecracker jailer](https://github.com/firecracker-microvm/firecracker/blob/main/docs/jailer.md) · [Firecracker production host setup](https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md) · [Kubernetes CPU management policies](https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/) · [Kubernetes node resource managers](https://kubernetes.io/docs/concepts/policy/node-resource-managers/)
 - Hardware: [Farshin et al., Reexamining Direct Cache Access (USENIX ATC 2020)](https://www.usenix.org/conference/atc20/presentation/farshin) · [DRAMA (USENIX Security 2016)](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/pessl)
 - Testing: [Mastik](https://github.com/0xADE1A1DE/Mastik) · [CJAG](https://github.com/IAIK/CJAG) · [Hello from the Other Side (NDSS 2017)](https://www.ndss-symposium.org/ndss2017/ndss-2017-programme/hello-other-side-ssh-over-robust-cache-covert-channels-cloud/)
-- Attacks referred to: [PLATYPUS](https://platypusattack.com/) and [CVE-2020-8694](https://nvd.nist.gov/vuln/detail/CVE-2020-8694) · [Fantastic Timers (2017)](https://gruss.cc/files/fantastictimers.pdf) · [NetCAT](https://www.vusec.net/projects/netcat/) · [TLBleed](https://vusec.net/projects/tlbleed)
+- Attacks referred to: [PLATYPUS](https://platypusattack.com/) and [CVE-2020-8694](https://nvd.nist.gov/vuln/detail/CVE-2020-8694) · [Fantastic Timers (2017)](https://gruss.cc/files/fantastictimers.pdf) · [NetCAT](https://www.vusec.net/projects/netcat/) · [TLBleed](https://vusec.net/projects/tlbleed) · [Hertzbleed](https://www.hertzbleed.com/)
