@@ -438,6 +438,76 @@ article .profile .more-info {
   }
 }
 
+/* An epigraph with a photo beside it: photo left, quote card right, both the
+   same height so their top and bottom edges line up. The photo credit sits
+   below the row, under the photo, so it does not throw the row off balance.
+   Stacked on narrow screens. */
+.quote-with-photo {
+  --quote-photo-width: 42%;
+  margin: 2em 0;
+
+  .quote-row {
+    display: grid;
+    grid-template-columns: var(--quote-photo-width) 1fr;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+
+  // A fixed width plus aspect-ratio gives the photo its natural height; when
+  // the quote card is taller, the row stretches the photo to match and
+  // object-fit crops it rather than letting it widen.
+  .quote-photo {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 750 / 419;
+    margin: 0;
+
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 40% 30%;
+      border-radius: 12px;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 10px 28px rgba(29, 79, 145, 0.08);
+    }
+  }
+
+  blockquote {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0;
+  }
+
+  .quote-credit {
+    width: var(--quote-photo-width);
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    font-style: italic;
+    line-height: 1.4;
+    color: var(--global-text-color-light);
+  }
+
+  @media (max-width: 575.98px) {
+    .quote-row {
+      grid-template-columns: 1fr;
+    }
+
+    .quote-photo {
+      order: -1;
+    }
+
+    .quote-credit {
+      width: auto;
+    }
+  }
+}
+
 /* Mermaid diagrams: a raised card so the diagram reads as a distinct figure,
    not loose SVG floating on the page background. */
 .mermaid {

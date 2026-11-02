@@ -169,6 +169,23 @@ blockquote {
     }
   }
 
+  /* Minor quote: a line lifted from the text, set off by a thin rule
+     instead of a full card. Use with `{: .block-minor}` after the quote. */
+  &.block-minor {
+    background: none;
+    border: none;
+    border-left: 3px solid rgba(29, 79, 145, 0.35);
+    border-radius: 0;
+    box-shadow: none;
+    margin: 1.5em 0 1.5em 0.25em;
+    padding: 0.15em 0 0.15em 1.1em;
+    font-size: 1.08rem;
+
+    &::before {
+      content: none;
+    }
+  }
+
   /* Tips, warnings, and dangers blockquotes */
   &.block-tip,
   &.block-warning,
