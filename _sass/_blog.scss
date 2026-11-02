@@ -80,17 +80,25 @@
   padding: 1rem 1.25rem 1rem 1rem;
   margin: 0 -1rem;
   border-radius: 10px;
-  border-left: 3px solid transparent;
   transition:
     background-color 0.2s ease,
-    border-color 0.2s ease,
     transform 0.2s ease;
 
   &:hover,
   &:focus-within {
     background-color: var(--global-bg-color);
-    border-left-color: var(--global-theme-color);
     transform: translateX(4px);
+  }
+
+  // The title link carries no hover wash of its own (the row is the
+  // highlight), so keyboard focus gets a visible ring on the row instead.
+  &:has(a:focus-visible) {
+    outline: 2px solid var(--global-theme-color);
+    outline-offset: 2px;
+  }
+
+  .note-title a:focus-visible {
+    outline: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -133,7 +141,9 @@
   font-size: 1.45rem;
   margin: 0 0 0.3rem;
 
-  a {
+  a,
+  a:hover,
+  a:focus-visible {
     color: var(--global-text-color);
     text-decoration: none;
 

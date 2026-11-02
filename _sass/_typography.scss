@@ -39,8 +39,8 @@ article strong {
 // Every text link gets a light grey wash behind it on hover. The shadow extends
 // the wash slightly without changing layout. Elements that draw their own hover
 // background (buttons, badges, pagination, blog-index entries) are left alone.
-a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):hover,
-a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):focus-visible {
+a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):not(.note-title a):hover,
+a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):not(.note-title a):focus-visible {
   background-color: var(--global-link-hover-bg-color);
   box-shadow: 0 0 0 3px var(--global-link-hover-bg-color);
   border-radius: 3px;
