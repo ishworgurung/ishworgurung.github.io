@@ -39,10 +39,11 @@ article strong {
 // Every text link gets a light grey wash behind it on hover. The shadow extends
 // the wash slightly without changing layout. Elements that draw their own hover
 // background (buttons, badges, pagination, blog-index entries) are left alone.
-// :where() keeps the blog-index exclusion from raising this rule's
-// specificity, so it does not override components' own hover styles.
-a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):not(.latest-title):not(:where(.note-title a)):hover,
-a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):not(.latest-title):not(:where(.note-title a)):focus-visible {
+// Keep this rule's specificity at (0,5,1): components such as the navbar's
+// Source button override it at exactly that specificity, later in the
+// stylesheet. Add new exclusions inside the :where(), which adds none.
+a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):not(:where(.latest-title, .note-title a)):hover,
+a:not(.btn):not(.badge):not(.af-page-link):not(.page-link):not(:where(.latest-title, .note-title a)):focus-visible {
   background-color: var(--global-link-hover-bg-color);
   box-shadow: 0 0 0 3px var(--global-link-hover-bg-color);
   border-radius: 3px;
