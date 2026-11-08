@@ -265,7 +265,11 @@ def load_lexicon() -> list[tuple[re.Pattern, str]]:
         for line in LEXICON.read_text(encoding="utf-8").splitlines():
             if not line.strip() or line.startswith("#"):
                 continue
-            word, _, say = line.partition("\t")
+            word, tab, say = line.partition("\t")
+            if not tab or not word.strip() or not say.strip():
+                print(f"tts: warning: {LEXICON.name}: ignoring {line!r} (needs <word><TAB><how to say it>)",
+                      file=sys.stderr)
+                continue
             rules.append((re.compile(rf"(?<![\w-]){re.escape(word.strip())}(?![\w])"), say.strip()))
     return rules
 

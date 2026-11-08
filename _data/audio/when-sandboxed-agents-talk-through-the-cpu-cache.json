@@ -2,9 +2,9 @@
   "src": "/assets/audio/posts/when-sandboxed-agents-talk-through-the-cpu-cache.mp3",
   "words": "/assets/audio/posts/when-sandboxed-agents-talk-through-the-cpu-cache.words.json",
   "duration": 4844.2,
-  "bytes": 29066195,
+  "bytes": 29065907,
   "voice": "Kokoro bm_george",
-  "hash": "9cd30d0b14bb91a6",
+  "hash": "c80df339ba197c0a",
   "chapters": [
     {
       "t": 0.0,
@@ -127,13 +127,13 @@
       "level": 2
     },
     {
-      "t": 4741.98,
+      "t": 4741.93,
       "title": "A checklist by threat level",
       "id": "-a-checklist-by-threat-level",
       "level": 2
     },
     {
-      "t": 4749.13,
+      "t": 4749.08,
       "title": "How this fits the earlier post",
       "id": "-how-this-fits-the-earlier-post",
       "level": 2

@@ -1,10 +1,10 @@
 {
   "src": "/assets/audio/posts/sandboxing-untrusted-ai-agents-on-linux.mp3",
   "words": "/assets/audio/posts/sandboxing-untrusted-ai-agents-on-linux.words.json",
-  "duration": 4230.6,
-  "bytes": 25384682,
+  "duration": 4231.6,
+  "bytes": 25390154,
   "voice": "Kokoro bm_george",
-  "hash": "7fe64805bcb5245b",
+  "hash": "735cf8c6a9a31f0a",
   "chapters": [
     {
       "t": 0.0,
@@ -19,163 +19,163 @@
       "level": 2
     },
     {
-      "t": 102.08,
+      "t": 102.15,
       "title": "1. The current challenges",
       "id": "-1-the-current-challenges",
       "level": 2
     },
     {
-      "t": 508.97,
+      "t": 509.3,
       "title": "2. Where the future is moving",
       "id": "-2-where-the-future-is-moving",
       "level": 2
     },
     {
-      "t": 727.4,
+      "t": 727.7,
       "title": "3. Contenders vs the status quo",
       "id": "-3-contenders-vs-the-status-quo",
       "level": 2
     },
     {
-      "t": 841.1,
+      "t": 841.9,
       "title": "4. How leading systems sandbox untrusted AI agents",
       "id": "-4-how-leading-systems-sandbox-untrusted-ai-agents",
       "level": 2
     },
     {
-      "t": 850.53,
+      "t": 851.33,
       "title": "Local coding-agent CLIs (the OS-level tier)",
       "id": "-local-coding-agent-clis-the-os-level-tier",
       "level": 3
     },
     {
-      "t": 972.4,
+      "t": 973.4,
       "title": "Hosted execution platforms (VM or user-space-kernel tier)",
       "id": "-hosted-execution-platforms-vm-or-user-space-kernel-tier",
       "level": 3
     },
     {
-      "t": 1144.75,
+      "t": 1145.75,
       "title": "NVIDIA OpenShell: the supervisor pattern, productised",
       "id": "-nvidia-openshell-the-supervisor-pattern-productised",
       "level": 3
     },
     {
-      "t": 1705.5,
+      "t": 1706.5,
       "title": "Sandlock: the supervisor pattern without containers or root",
       "id": "-sandlock-the-supervisor-pattern-without-containers-or-root",
       "level": 3
     },
     {
-      "t": 2410.97,
+      "t": 2411.97,
       "title": "The pattern across all of them",
       "id": "-the-pattern-across-all-of-them",
       "level": 3
     },
     {
-      "t": 2465.97,
+      "t": 2466.97,
       "title": "5. Why Firecracker rather than QEMU, and what about GPUs?",
       "id": "-5-why-firecracker-rather-than-qemu-and-what-about-gpus",
       "level": 2
     },
     {
-      "t": 2472.27,
+      "t": 2473.27,
       "title": "Could plain QEMU do the job of Firecracker?",
       "id": "-could-plain-qemu-do-the-job-of-firecracker",
       "level": 3
     },
     {
-      "t": 2583.7,
+      "t": 2584.7,
       "title": "Firecracker and GPUs",
       "id": "-firecracker-and-gpus",
       "level": 3
     },
     {
-      "t": 2643.77,
+      "t": 2644.77,
       "title": "What vendors sell for GPU isolation",
       "id": "-what-vendors-sell-for-gpu-isolation",
       "level": 3
     },
     {
-      "t": 2706.12,
+      "t": 2707.12,
       "title": "The leading edge",
       "id": "-the-leading-edge",
       "level": 3
     },
     {
-      "t": 2811.85,
+      "t": 2812.85,
       "title": "6. Research and proposals for the next 5 to 10 years",
       "id": "-6-research-and-proposals-for-the-next-5-to-10-years",
       "level": 2
     },
     {
-      "t": 2817.77,
+      "t": 2818.77,
       "title": "Papers (arXiv, 2026 unless noted)",
       "id": "-papers-arxiv-2026-unless-noted",
       "level": 3
     },
     {
-      "t": 2932.85,
+      "t": 2933.85,
       "title": "Kernel proposals and standards",
       "id": "-kernel-proposals-and-standards",
       "level": 3
     },
     {
-      "t": 2995.15,
+      "t": 2996.15,
       "title": "Other research directions",
       "id": "-other-research-directions",
       "level": 3
     },
     {
-      "t": 3034.12,
+      "t": 3035.12,
       "title": "Where this seems to be heading (opinion)",
       "id": "-where-this-seems-to-be-heading-opinion",
       "level": 3
     },
     {
-      "t": 3195.87,
+      "t": 3196.4,
       "title": "7. Why isn’t OpenBSD the answer?",
       "id": "-7-why-isnt-openbsd-the-answer",
       "level": 2
     },
     {
-      "t": 3230.17,
+      "t": 3230.87,
       "title": "What OpenBSD does well",
       "id": "-what-openbsd-does-well",
       "level": 3
     },
     {
-      "t": 3270.22,
+      "t": 3270.92,
       "title": "Why it is not enough for this problem",
       "id": "-why-it-is-not-enough-for-this-problem",
       "level": 3
     },
     {
-      "t": 3372.8,
+      "t": 3373.5,
       "title": "Where it fits",
       "id": "-where-it-fits",
       "level": 3
     },
     {
-      "t": 3398.52,
+      "t": 3399.22,
       "title": "FreeBSD’s Capsicum: the capability model Linux never adopted",
       "id": "-freebsds-capsicum-the-capability-model-linux-never-adopted",
       "level": 3
     },
     {
-      "t": 3605.5,
+      "t": 3606.25,
       "title": "8. What the stack above still misses",
       "id": "-8-what-the-stack-above-still-misses",
       "level": 2
     },
     {
-      "t": 3915.22,
+      "t": 3915.97,
       "title": "Could quantum help?",
       "id": "-could-quantum-help",
       "level": 3
     },
     {
-      "t": 4156.2,
+      "t": 4156.95,
       "title": "A decision guide",
       "id": "-a-decision-guide",
       "level": 2

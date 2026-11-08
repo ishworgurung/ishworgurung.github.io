@@ -33,6 +33,7 @@ o3	oh three
 WebAuthn	web authen
 passkeys	pass keys
 AWS	A-W-S
+OS	O-S
 
 # --- Networking
 SYN-ACKs	sin acks
@@ -115,3 +116,4 @@ irq	I R Q
 tmpfiles	temp files
 uj	micro joules
 vmentry	V M entry
+TOCTOU	tock-too
