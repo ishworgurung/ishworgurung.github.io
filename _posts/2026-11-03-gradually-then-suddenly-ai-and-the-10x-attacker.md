@@ -127,6 +127,10 @@ Two things stop this turning into a doomsday multiplier.
 
 **Second, the head start is short.** NIST's CAISI found the open-weight GLM-5.3 trailing the US frontier by about **four months** on cyber benchmarks. On a V8 exploitation benchmark it built end-to-end exploits in 50 of 410 attempts, against Mythos Preview's 56. Its safeguards could be removed for about $4,400 of GPU time with little loss of capability. ([Anthropic, September 2026](https://anthropic.com/research/glm-5-3-and-the-spread-of-advanced-cyber-capabilities)) Whatever defenders can do with a frontier model today, assume an attacker with a downloaded model can do it next season with nobody watching.
 
+<a id="update-2026-11-08"></a>**Update, 8 November 2026.** A week after this post went up, OpenAI published [A thousand fewer paths to root](https://openai.com/index/a-thousand-fewer-paths-to-root/) (4 November). In mid-October its Cyber team ran an autonomous pipeline, built on an upcoming cyber model, against the latest Linux kernel. Scout agents narrowed the kernel to about 7% of its code worth auditing; analyst agents produced 2,308 candidate findings in 12 hours; triage agents reproduced 1,724 of them under KASAN within 30 hours; and exploit-development agents, working against a stock desktop distribution with SMEP, SMAP and KASLR on, built 1,169 working root exploits from 948 distinct bugs, each with a candidate patch. The whole run cost $1,213,430 in API credits, or **$1,279 per unique root exploit**; a successful exploit took $359 of credits on average to write. Priced at historical Pwn2Own and TyphoonPWN bounties, the exploits would be worth $18.9 to $66.3 million, 16 to 55 times the cost. On Google's hardened kernelCTF target, the same pipeline produced 21 root exploits for about $33,000, against 26 accepted by the programme in all of 2026 so far. ([OpenAI](https://openai.com/index/a-thousand-fewer-paths-to-root/))
+
+That is the multiplier from this section turning into a price, and it is still moving. OpenAI's July run with GPT-5.6 Sol found 166 root exploits for $513,690, about $3,100 each; three months later the newer model found more than five times as many at well under half the unit cost, on a kernel hardened in between. OpenAI's own conclusion matches this post's: for a well-resourced attacker, a low-privileged account on a system that is behind on patches "should be considered functionally equivalent to root access". It also confirms the bottleneck argument below from the other side. Ten days after the scan, 61 of the bugs were fixed upstream, 43 had patches in staging and 299 were being discussed in public, so OpenAI is sending reports and patches in batches, critical ones first, at the kernel community's request. And it shows why validation still matters: in one early run, 20 of 200 "successful" exploits had reached root through a different zero-day than the one they were given. ([OpenAI](https://openai.com/index/a-thousand-fewer-paths-to-root/))
+
 **Calibrated multiplier for zero-day discovery and exploitation: undefined as a ratio, and the absolute capability is real.** It was niche in 2024, noisy but useful in 2025, and is now available to anyone who can run an open-weight model.
 
 ## 🤖 Running the operation: one operator, team-sized output
@@ -302,6 +306,10 @@ CISA's [Cross-Sector Cybersecurity Performance Goals 2.0](https://www.cisa.gov/s
 
 None of this is new advice. That is the uncomfortable part. The defender's job did not change shape. It got about ten times less forgiving.
 
+## 📝 Changelog
+
+- **8 November 2026:** added two paragraphs on OpenAI's [A thousand fewer paths to root](#update-2026-11-08) (948 unique Linux kernel root exploits from one automated run, at $1,279 each) to the section on finding new vulnerabilities.
+
 ## 🔗 Sources
 
 ### Research and competitions
@@ -346,6 +354,7 @@ None of this is new advice. That is the uncomfortable part. The defender's job d
 - Anthropic, [Claude Mythos Preview's cybersecurity capabilities](https://www.anthropic.com/research/mythos-preview), April 2026.
 - Anthropic, [Project Glasswing: an initial update](https://www.anthropic.com/news/glasswing-initial-update), May 2026.
 - Anthropic, [GLM-5.3 and the spread of advanced cyber capabilities](https://anthropic.com/research/glm-5-3-and-the-spread-of-advanced-cyber-capabilities), September 2026, citing NIST CAISI's assessment.
+- OpenAI, [A thousand fewer paths to root](https://openai.com/index/a-thousand-fewer-paths-to-root/), 4 November 2026. 2,308 candidates, 1,724 reproduced, 948 unique root exploits for $1,213,430; July comparison run, kernelCTF results, patch status.
 - Anthropic, [Detecting and countering misuse of AI: September 2026](https://www.anthropic.com/threat-intelligence-report-september-2026).
 
 ### Incidents and reporting
