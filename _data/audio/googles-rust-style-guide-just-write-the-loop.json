@@ -1,0 +1,34 @@
+{
+  "src": "/assets/audio/posts/googles-rust-style-guide-just-write-the-loop.mp3",
+  "words": "/assets/audio/posts/googles-rust-style-guide-just-write-the-loop.words.json",
+  "duration": 293.1,
+  "bytes": 1759204,
+  "voice": "Kokoro bm_george",
+  "hash": "5aaf2ddf7dbf1219",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 17.0,
+      "title": "The guide",
+      "id": "-the-guide",
+      "level": 2
+    },
+    {
+      "t": 71.73,
+      "title": "The one that clicked hardest",
+      "id": "-the-one-that-clicked-hardest",
+      "level": 2
+    },
+    {
+      "t": 217.82,
+      "title": "BeautifulRust",
+      "id": "-beautifulrust",
+      "level": 2
+    }
+  ]
+}

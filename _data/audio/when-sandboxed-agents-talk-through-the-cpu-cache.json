@@ -1,0 +1,142 @@
+{
+  "src": "/assets/audio/posts/when-sandboxed-agents-talk-through-the-cpu-cache.mp3",
+  "words": "/assets/audio/posts/when-sandboxed-agents-talk-through-the-cpu-cache.words.json",
+  "duration": 4844.2,
+  "bytes": 29066195,
+  "voice": "Kokoro bm_george",
+  "hash": "9cd30d0b14bb91a6",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 221.25,
+      "title": "What OpenAI reported",
+      "id": "-what-openai-reported",
+      "level": 2
+    },
+    {
+      "t": 612.38,
+      "title": "Covert channels, side channels, and the confinement problem",
+      "id": "-covert-channels-side-channels-and-the-confinement-problem",
+      "level": 2
+    },
+    {
+      "t": 879.75,
+      "title": "Microarchitectural state, and why it matters so much",
+      "id": "-microarchitectural-state-and-why-it-matters-so-much",
+      "level": 2
+    },
+    {
+      "t": 1250.27,
+      "title": "From bits to messages",
+      "id": "from-bits-to-messages",
+      "level": 3
+    },
+    {
+      "t": 1483.8,
+      "title": "Inside the silicon: what “evicted” actually means",
+      "id": "inside-the-silicon-what-evicted-actually-means",
+      "level": 3
+    },
+    {
+      "t": 1920.22,
+      "title": "Why a VM, even Firecracker, does not stop this",
+      "id": "-why-a-vm-even-firecracker-does-not-stop-this",
+      "level": 2
+    },
+    {
+      "t": 2157.72,
+      "title": "Is any kind of VM immune?",
+      "id": "is-any-kind-of-vm-immune",
+      "level": 3
+    },
+    {
+      "t": 2318.57,
+      "title": "What a hyperscaler does",
+      "id": "what-a-hyperscaler-does",
+      "level": 3
+    },
+    {
+      "t": 2416.8,
+      "title": "Seventeen years of cross-tenant channels",
+      "id": "-seventeen-years-of-cross-tenant-channels",
+      "level": 2
+    },
+    {
+      "t": 3296.13,
+      "title": "Defence in depth",
+      "id": "-defence-in-depth",
+      "level": 2
+    },
+    {
+      "t": 3392.15,
+      "title": "Layer 0: design so collusion does not matter",
+      "id": "layer-0-design-so-collusion-does-not-matter",
+      "level": 3
+    },
+    {
+      "t": 3504.1,
+      "title": "Layer 1: placement removes the hardware channels",
+      "id": "layer-1-placement-removes-the-hardware-channels",
+      "level": 3
+    },
+    {
+      "t": 3643.88,
+      "title": "Layer 2: harden hosts that must be shared",
+      "id": "layer-2-harden-hosts-that-must-be-shared",
+      "level": 3
+    },
+    {
+      "t": 3958.63,
+      "title": "Layer 3: remove shared software state",
+      "id": "layer-3-remove-shared-software-state",
+      "level": 3
+    },
+    {
+      "t": 4102.78,
+      "title": "Layer 4: add noise and take away clocks (weak)",
+      "id": "layer-4-add-noise-and-take-away-clocks-weak",
+      "level": 3
+    },
+    {
+      "t": 4178.48,
+      "title": "Layer 5: detect and respond",
+      "id": "layer-5-detect-and-respond",
+      "level": 3
+    },
+    {
+      "t": 4276.83,
+      "title": "Layer 6: assume escape, hold the perimeter",
+      "id": "layer-6-assume-escape-hold-the-perimeter",
+      "level": 3
+    },
+    {
+      "t": 4381.2,
+      "title": "What “mitigated” means here",
+      "id": "-what-mitigated-means-here",
+      "level": 2
+    },
+    {
+      "t": 4541.55,
+      "title": "The frontier",
+      "id": "-the-frontier",
+      "level": 2
+    },
+    {
+      "t": 4741.98,
+      "title": "A checklist by threat level",
+      "id": "-a-checklist-by-threat-level",
+      "level": 2
+    },
+    {
+      "t": 4749.13,
+      "title": "How this fits the earlier post",
+      "id": "-how-this-fits-the-earlier-post",
+      "level": 2
+    }
+  ]
+}

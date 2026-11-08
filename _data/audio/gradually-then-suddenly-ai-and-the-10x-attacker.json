@@ -1,0 +1,136 @@
+{
+  "src": "/assets/audio/posts/gradually-then-suddenly-ai-and-the-10x-attacker.mp3",
+  "words": "/assets/audio/posts/gradually-then-suddenly-ai-and-the-10x-attacker.words.json",
+  "duration": 2942.4,
+  "bytes": 17654917,
+  "voice": "Kokoro bm_george",
+  "hash": "7c3537026830e962",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 386.6,
+      "title": "Why one multiplier is the wrong question",
+      "id": "-why-one-multiplier-is-the-wrong-question",
+      "level": 2
+    },
+    {
+      "t": 476.1,
+      "title": "Phishing and social engineering: 10× to 50×",
+      "id": "-phishing-and-social-engineering-10-to-50",
+      "level": 2
+    },
+    {
+      "t": 626.65,
+      "title": "Exploiting known vulnerabilities: from 3× to “weeks into hours”",
+      "id": "️-exploiting-known-vulnerabilities-from-3-to-weeks-into-hours",
+      "level": 2
+    },
+    {
+      "t": 915.93,
+      "title": "Finding new vulnerabilities: a step change, and also the defender’s best tool",
+      "id": "-finding-new-vulnerabilities-a-step-change-and-also-the-defenders-best-tool",
+      "level": 2
+    },
+    {
+      "t": 1326.4,
+      "title": "Running the operation: one operator, team-sized output",
+      "id": "-running-the-operation-one-operator-team-sized-output",
+      "level": 2
+    },
+    {
+      "t": 1553.68,
+      "title": "Where the multiplier is still close to 1×",
+      "id": "-where-the-multiplier-is-still-close-to-1",
+      "level": 2
+    },
+    {
+      "t": 1667.33,
+      "title": "Putting the numbers together",
+      "id": "-putting-the-numbers-together",
+      "level": 2
+    },
+    {
+      "t": 1694.58,
+      "title": "By stage",
+      "id": "by-stage",
+      "level": 3
+    },
+    {
+      "t": 1700.9,
+      "title": "By attacker",
+      "id": "by-attacker",
+      "level": 3
+    },
+    {
+      "t": 1718.48,
+      "title": "From stages to one number",
+      "id": "from-stages-to-one-number",
+      "level": 3
+    },
+    {
+      "t": 1824.45,
+      "title": "The real asymmetry is in the bottlenecks",
+      "id": "-the-real-asymmetry-is-in-the-bottlenecks",
+      "level": 2
+    },
+    {
+      "t": 2099.48,
+      "title": "What a 10× attacker means for defenders",
+      "id": "-what-a-10-attacker-means-for-defenders",
+      "level": 2
+    },
+    {
+      "t": 2218.55,
+      "title": "Make the cheap attacks expensive again",
+      "id": "-make-the-cheap-attacks-expensive-again",
+      "level": 3
+    },
+    {
+      "t": 2339.68,
+      "title": "Patch on the attacker’s clock",
+      "id": "️-patch-on-the-attackers-clock",
+      "level": 3
+    },
+    {
+      "t": 2429.1,
+      "title": "Build the fix pipeline, not just the finding pipeline",
+      "id": "-build-the-fix-pipeline-not-just-the-finding-pipeline",
+      "level": 3
+    },
+    {
+      "t": 2582.15,
+      "title": "Contain: assume the bug will be used",
+      "id": "-contain-assume-the-bug-will-be-used",
+      "level": 3
+    },
+    {
+      "t": 2668.38,
+      "title": "Detect on behaviour, and on speed",
+      "id": "-detect-on-behaviour-and-on-speed",
+      "level": 3
+    },
+    {
+      "t": 2752.38,
+      "title": "Use AI on defence, with eyes open",
+      "id": "-use-ai-on-defence-with-eyes-open",
+      "level": 3
+    },
+    {
+      "t": 2864.88,
+      "title": "What to measure",
+      "id": "-what-to-measure",
+      "level": 3
+    },
+    {
+      "t": 2881.75,
+      "title": "If you are a small organisation",
+      "id": "️-if-you-are-a-small-organisation",
+      "level": 3
+    }
+  ]
+}

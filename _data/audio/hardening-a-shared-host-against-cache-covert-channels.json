@@ -1,0 +1,106 @@
+{
+  "src": "/assets/audio/posts/hardening-a-shared-host-against-cache-covert-channels.mp3",
+  "words": "/assets/audio/posts/hardening-a-shared-host-against-cache-covert-channels.words.json",
+  "duration": 2071.7,
+  "bytes": 12430894,
+  "voice": "Kokoro bm_george",
+  "hash": "9ab87d4e0129e236",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 248.08,
+      "title": "Step 0: map the machine",
+      "id": "️-step-0-map-the-machine",
+      "level": 2
+    },
+    {
+      "t": 325.62,
+      "title": "Step 1: stop sharing cores between domains",
+      "id": "-step-1-stop-sharing-cores-between-domains",
+      "level": 2
+    },
+    {
+      "t": 455.62,
+      "title": "Step 2: pin each domain to its own cores",
+      "id": "-step-2-pin-each-domain-to-its-own-cores",
+      "level": 2
+    },
+    {
+      "t": 794.58,
+      "title": "Step 3: turn off memory deduplication",
+      "id": "-step-3-turn-off-memory-deduplication",
+      "level": 2
+    },
+    {
+      "t": 853.0,
+      "title": "Step 4: keep the CPU-bug mitigations on, and flush on switch",
+      "id": "-step-4-keep-the-cpu-bug-mitigations-on-and-flush-on-switch",
+      "level": 2
+    },
+    {
+      "t": 1045.8,
+      "title": "Step 5: partition the last-level cache with resctrl",
+      "id": "-step-5-partition-the-last-level-cache-with-resctrl",
+      "level": 2
+    },
+    {
+      "t": 1313.08,
+      "title": "Step 6: take away the free receivers",
+      "id": "-step-6-take-away-the-free-receivers",
+      "level": 2
+    },
+    {
+      "t": 1429.3,
+      "title": "Step 7: fixed quotas for what is still shared",
+      "id": "️-step-7-fixed-quotas-for-what-is-still-shared",
+      "level": 2
+    },
+    {
+      "t": 1511.25,
+      "title": "Step 8: check that it worked",
+      "id": "-step-8-check-that-it-worked",
+      "level": 2
+    },
+    {
+      "t": 1522.6,
+      "title": "Audit the configuration",
+      "id": "audit-the-configuration",
+      "level": 3
+    },
+    {
+      "t": 1537.23,
+      "title": "Attack your own host",
+      "id": "attack-your-own-host",
+      "level": 3
+    },
+    {
+      "t": 1631.68,
+      "title": "Watch for it in production",
+      "id": "watch-for-it-in-production",
+      "level": 3
+    },
+    {
+      "t": 1716.03,
+      "title": "What is closed",
+      "id": "-what-is-closed",
+      "level": 2
+    },
+    {
+      "t": 1865.88,
+      "title": "What is still open",
+      "id": "-what-is-still-open",
+      "level": 2
+    },
+    {
+      "t": 1973.08,
+      "title": "The runbook on one page",
+      "id": "-the-runbook-on-one-page",
+      "level": 2
+    }
+  ]
+}

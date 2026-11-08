@@ -1,0 +1,82 @@
+{
+  "src": "/assets/audio/posts/why-considerdone-au.mp3",
+  "words": "/assets/audio/posts/why-considerdone-au.words.json",
+  "duration": 659.8,
+  "bytes": 3959622,
+  "voice": "Kokoro bm_george",
+  "hash": "e67d744c8d42183e",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 61.53,
+      "title": "The gap in the current marketplace model",
+      "id": "-the-gap-in-the-current-marketplace-model",
+      "level": 2
+    },
+    {
+      "t": 123.15,
+      "title": "What the service is actively solving",
+      "id": "-what-the-service-is-actively-solving",
+      "level": 2
+    },
+    {
+      "t": 185.3,
+      "title": "How a job moves through considerdone.au",
+      "id": "-how-a-job-moves-through-considerdoneau",
+      "level": 2
+    },
+    {
+      "t": 202.95,
+      "title": "Engineering for a real-world workflow",
+      "id": "-engineering-for-a-real-world-workflow",
+      "level": 2
+    },
+    {
+      "t": 225.85,
+      "title": "The orchestrator owns the journey",
+      "id": "-the-orchestrator-owns-the-journey",
+      "level": 3
+    },
+    {
+      "t": 263.42,
+      "title": "Actions are designed to be safe to retry",
+      "id": "-actions-are-designed-to-be-safe-to-retry",
+      "level": 3
+    },
+    {
+      "t": 308.87,
+      "title": "Structured results, not AI interpretation after the fact",
+      "id": "-structured-results-not-ai-interpretation-after-the-fact",
+      "level": 3
+    },
+    {
+      "t": 343.6,
+      "title": "Payment follows approval, not assumption",
+      "id": "-payment-follows-approval-not-assumption",
+      "level": 3
+    },
+    {
+      "t": 400.47,
+      "title": "Adapting to how trades actually quote",
+      "id": "-adapting-to-how-trades-actually-quote",
+      "level": 2
+    },
+    {
+      "t": 489.87,
+      "title": "Trust is a product feature, not a marketing claim",
+      "id": "-trust-is-a-product-feature-not-a-marketing-claim",
+      "level": 2
+    },
+    {
+      "t": 583.62,
+      "title": "Building toward a useful local service agent",
+      "id": "-building-toward-a-useful-local-service-agent",
+      "level": 2
+    }
+  ]
+}
