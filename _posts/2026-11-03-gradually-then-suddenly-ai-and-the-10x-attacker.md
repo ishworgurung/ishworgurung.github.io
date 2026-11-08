@@ -1,5 +1,6 @@
 ---
 title: "Gradually, then suddenly: AI and the 10× attacker"
+audio: true
 ---
 
 <div class="quote-with-photo" markdown="1">

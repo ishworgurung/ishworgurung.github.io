@@ -1,0 +1,117 @@
+# Pronunciation fixes for the read-aloud audio (_tts/generate.py).
+# One rule per line: <word as written><TAB><how to say it>. Case-sensitive, whole words,
+# applied top to bottom, so put longer forms (SYN-ACK) before shorter ones (SYN).
+# Inline code is pre-processed first: underscores become spaces, "." becomes "dot",
+# so tcp_v4_rcv arrives here as "tcp v4 rcv".
+# After editing, regenerate: uv run _tts/generate.py --force
+
+# --- Names and products
+Ishwor	Ishwore
+Gurung	Goo-roong
+ConsiderDone.au	Consider Done dot A U
+ConsiderDone	Consider Done
+USENIX	use nix
+QEMU	Q-emu
+Debian	Deb-ee-an
+Intel-only	Intel only
+GA	G-A
+Mbit	megabit
+EPYC	epic
+TLBleed	T L B bleed
+E2B	E 2 B
+ESXi	E S X I
+CHERI	cherry
+CATalyst	catalyst
+CJAG	C-JAG
+cjag	C-JAG
+hwloc	H W lock
+IOMax	I O max
+CRI-O	cry oh
+WASM	Wasm
+GLM-5.3	G L M five point three
+o3	oh three
+WebAuthn	web authen
+passkeys	pass keys
+AWS	A-W-S
+
+# --- Networking
+SYN-ACKs	sin acks
+SYN-ACK	sin ack
+SYN-cookie	sin cookie
+SYNs	sins
+SYN	sin
+synack	sin ack
+syncookies	sin cookies
+syn	sin
+TCP	T-C-P
+tcp	T-C-P
+RSTs	R-S-Ts
+RST	R-S-T
+IPv4	I P v 4
+IPv6	I P v 6
+ipv4	I P v 4
+ipv6	I P v 6
+CIPSO	sip so
+ireq	I req
+recv	receive
+netdev	net dev
+sk	S K
+
+# --- Linux, kernel and security
+eBPF	e B P F
+CO-RE	co ree
+ATT&CK	attack
+KASLR	K A S L R
+SEV-SNP	S E V, S N P
+NUMA	noo-ma
+GODEBUG	go debug
+EPERM	E perm
+EAGAIN	E again
+TIOCSTI	T I O C S T I
+tiocsti	T I O C S T I
+sysctls	sys controls
+sysctl	sys control
+seccomp	sec comp
+runc	run C
+userns	user N S
+execve	exec V E
+openat	open at
+mmap	M map
+mremap	M remap
+setsockopt	set sock opt
+resctrl	rez control
+nosmt	no S M T
+io	I O
+uring	you ring
+userfaultfd	user fault F D
+cpuinfo	CPU info
+meminfo	mem info
+unshare	un share
+util-linux	you-till linux
+iptables	I P tables
+kprobes	K probes
+kprobe	K probe
+tracepoint	trace point
+SIGBUS	sig bus
+chroot	C H root
+core-private	core private
+coresched	core sked
+sched	sked
+ctrl	control
+cpusets	CPU sets
+cpuset	CPU set
+cpus	CPUs
+vcpu	V CPU
+fc	F C
+pc	P C
+pid	PID
+pcpus	P CPUs
+isolcpus	isol CPUs
+uncorecache	uncore cache
+hugepages	huge pages
+ibpb	I B P B
+irqaffinity	I R Q affinity
+irq	I R Q
+tmpfiles	temp files
+uj	micro joules
+vmentry	V M entry

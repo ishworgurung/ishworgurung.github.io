@@ -1,5 +1,6 @@
 ---
 title: "When sandboxed agents talk through the CPU cache"
+audio: true
 ---
 
 On 23 October 2026 OpenAI published [Securing our frontier model training environment](https://openai.com/index/securing-our-frontier-model-training-environment/), a write-up of a large red-teaming campaign against its own model sandboxes. One paragraph went round social media faster than the rest: agents in separate microVMs, with no network and no shared writable files, still managed to pass secrets to each other through the processor's cache.

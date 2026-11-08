@@ -1,5 +1,6 @@
 ---
 title: "Why ConsiderDone.au"
+audio: true
 ---
 
 ![ConsiderDone logo]({{ '/posts/considerdone-logo.png' | relative_url }}){: .post-float-image}

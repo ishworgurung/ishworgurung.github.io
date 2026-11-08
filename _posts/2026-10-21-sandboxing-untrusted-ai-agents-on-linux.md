@@ -1,5 +1,6 @@
 ---
 title: "Sandboxing untrusted AI agents on Linux"
+audio: true
 ---
 
 An AI coding agent runs code before any human has reviewed it: shell commands, generated scripts, `pip` and `npm` installs, tool plugins. It can be steered by [prompt injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) hidden in a web page or a dependency, and even a well-meaning agent can `rm -rf` the wrong tree. AI review agents exist, but they mostly read the diff *after* the code has already run, and they are LLMs that the same prompt injection can fool, so they complement a sandbox rather than replace it. So what does a sandbox for that code actually have to do on Linux, and why is "minimal" so hard?

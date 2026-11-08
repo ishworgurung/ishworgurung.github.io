@@ -1,5 +1,6 @@
 ---
 title: "Google's Rust style guide, and the case for just writing the loop"
+audio: true
 ---
 
 A short plug for two things I have been reading: Google's [Rust Style Guide](https://google.github.io/styleguide/rustguide.html), and [BeautifulRust](https://github.com/morganlinton/BeautifulRust), which builds on it.

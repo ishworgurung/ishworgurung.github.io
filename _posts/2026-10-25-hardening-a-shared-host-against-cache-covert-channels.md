@@ -1,5 +1,6 @@
 ---
 title: "Hardening a shared Linux host against cache covert channels"
+audio: true
 ---
 
 The [previous post]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}) explained how agents in separate microVMs passed secrets to each other through the CPU cache, why no kind of VM stops that on its own, and what a layered defence looks like. It stayed at the level of *what* to do. This post is the *how*: one Linux host running KVM guests (Firecracker or QEMU), taken from the default configuration to one where agents in different trust domains share as little hardware as the machine allows, with the commands, the files they touch, and how to check that each step did something.

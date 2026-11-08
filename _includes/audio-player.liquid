@@ -1,0 +1,446 @@
+{% comment %}
+  Read-aloud player for a post. Expects `audio` = site.data.audio[page.slug]
+  (written by _tts/generate.py). Renders a "Listen" button for the post header
+  and a floating mini player that opens when it is pressed.
+{% endcomment %}
+{% assign audio = include.audio %}
+{% assign audio_minutes = audio.duration | divided_by: 60.0 | round %}
+<button type="button" class="tts-listen" aria-controls="tts-player" aria-expanded="false">
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.5"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.5"/></svg>
+  <span>Listen</span><span class="tts-listen-meta">{{ audio_minutes }} min</span>
+</button>
+
+<div class="tts-player" id="tts-player" role="region" aria-label="Audio version of this post" hidden>
+  <div class="tts-top">
+    <div class="tts-titles">
+      <div class="tts-title">{{ page.title }}</div>
+      <div class="tts-chapter" aria-live="off"></div>
+    </div>
+    <div class="tts-time" aria-hidden="true"><span class="tts-now">0:00</span> / <span class="tts-total"></span></div>
+    <button type="button" class="tts-btn tts-close" aria-label="Close player">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <input type="range" class="tts-seek" min="0" max="{{ audio.duration }}" step="1" value="0" aria-label="Seek">
+
+  <div class="tts-controls">
+    <button type="button" class="tts-btn tts-back" aria-label="Back 15 seconds">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5.6 9.2A7.5 7.5 0 1 1 4.5 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.4 4.6l1.3 4.7 4.6-1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><text x="12.2" y="16" text-anchor="middle" font-size="7.5" font-weight="600" fill="currentColor" font-family="system-ui, sans-serif">15</text></svg>
+    </button>
+    <button type="button" class="tts-btn tts-play" aria-label="Play">
+      <svg class="tts-icon-play" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
+      <svg class="tts-icon-pause" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><rect x="6.5" y="5.5" width="3.8" height="13" rx="1" fill="currentColor"/><rect x="13.7" y="5.5" width="3.8" height="13" rx="1" fill="currentColor"/></svg>
+    </button>
+    <button type="button" class="tts-btn tts-fwd" aria-label="Forward 15 seconds">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M18.4 9.2A7.5 7.5 0 1 0 19.5 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M19.6 4.6l-1.3 4.7-4.6-1.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><text x="11.8" y="16" text-anchor="middle" font-size="7.5" font-weight="600" fill="currentColor" font-family="system-ui, sans-serif">15</text></svg>
+    </button>
+    <span class="tts-spacer"></span>
+    {% if audio.words %}
+      <button type="button" class="tts-btn tts-follow" aria-pressed="false" aria-label="Highlight words as they are read" title="Highlight words as they are read">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3.5 20.5 9 12 17.5 6.5 12z"/><path d="M6.5 12 4.5 18.5 5.5 19.5 12 17.5"/><path class="tts-follow-mark" d="M3 21.6h11" stroke-width="2.6"/></svg>
+      </button>
+    {% endif %}
+    <button type="button" class="tts-btn tts-speed" aria-label="Playback speed">1×</button>
+    <button type="button" class="tts-btn tts-chapters-btn" aria-label="Sections" aria-expanded="false" aria-controls="tts-chapters">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><g fill="currentColor" stroke="none"><circle cx="4.5" cy="6" r="1.4"/><circle cx="4.5" cy="12" r="1.4"/><circle cx="4.5" cy="18" r="1.4"/></g></svg>
+    </button>
+  </div>
+
+  <ol class="tts-chapters" id="tts-chapters" hidden>
+    {% for c in audio.chapters %}
+      <li class="tts-ch-l{{ c.level }}"><button type="button" data-t="{{ c.t }}"><span>{{ c.title | replace: '“', '"' | replace: '”', '"' }}</span><time></time></button></li>
+    {% endfor %}
+  </ol>
+
+  <audio preload="none" src="{{ audio.src | relative_url }}?v={{ audio.hash }}"></audio>
+  <p class="tts-credit">Read by an AI voice (Kokoro). The text above is the original.</p>
+</div>
+
+<script>
+  (function () {
+    const player = document.getElementById("tts-player");
+    const listen = document.querySelector(".tts-listen");
+    const audio = player.querySelector("audio");
+    const $ = (s) => player.querySelector(s);
+    const seek = $(".tts-seek");
+    const playBtn = $(".tts-play");
+    const speedBtn = $(".tts-speed");
+    const chBtn = $(".tts-chapters-btn");
+    const chList = $(".tts-chapters");
+    const chapterLabel = $(".tts-chapter");
+    const total = {{ audio.duration | jsonify }};
+    const chapters = [...chList.querySelectorAll("button")].map((b) => ({ t: +b.dataset.t, el: b, title: b.textContent.trim() }));
+    const posKey = "tts-pos:{{ page.slug }}";
+    const rateKey = "tts-rate";
+    const rates = [1, 1.25, 1.5, 1.75, 2, 0.75];
+
+    const store = {
+      get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+    };
+
+    function fmt(s) {
+      s = Math.max(0, Math.floor(s));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = String(s % 60).padStart(2, "0");
+      return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+    }
+
+    $(".tts-total").textContent = fmt(total);
+    chapters.forEach((c) => (c.el.querySelector("time").textContent = fmt(c.t)));
+
+    let dragging = false;
+    let current = -1;
+    function render() {
+      const t = audio.currentTime || 0;
+      if (!dragging) seek.value = t;
+      seek.style.setProperty("--tts-fill", `${(Math.min(t, total) / total) * 100}%`);
+      seek.setAttribute("aria-valuetext", `${fmt(t)} of ${fmt(total)}`);
+      $(".tts-now").textContent = fmt(t);
+      let i = 0;
+      while (i + 1 < chapters.length && chapters[i + 1].t <= t + 0.25) i++;
+      if (i !== current) {
+        if (chapters[current]) chapters[current].el.removeAttribute("aria-current");
+        current = i;
+        if (chapters[i]) {
+          chapters[i].el.setAttribute("aria-current", "true");
+          chapterLabel.textContent = i ? chapters[i].title : "";
+        }
+      }
+    }
+
+    function setPlaying(on) {
+      player.classList.toggle("is-playing", on);
+      playBtn.setAttribute("aria-label", on ? "Pause" : "Play");
+      if ("mediaSession" in navigator) navigator.mediaSession.playbackState = on ? "playing" : "paused";
+    }
+
+    function setRate(r) {
+      audio.playbackRate = r;
+      audio.defaultPlaybackRate = r;
+      speedBtn.textContent = `${r}×`;
+      speedBtn.setAttribute("aria-label", `Playback speed ${r} times`);
+    }
+
+    function jump(t) {
+      audio.currentTime = Math.min(Math.max(0, t), total - 0.5);
+      render();
+    }
+
+    let restored = false;
+    function restore() {
+      if (restored) return;
+      restored = true;
+      const saved = parseFloat(store.get(posKey));
+      if (saved > 10 && saved < total - 10) jump(saved - 2);
+    }
+
+    // Nothing is downloaded until the reader shows interest: hovering or focusing
+    // Listen fetches just the MP3's header so playback starts quickly, and
+    // opening the player lets the browser buffer as far ahead as it likes.
+    function warm() {
+      if (audio.preload === "none") audio.preload = "metadata";
+    }
+    listen.addEventListener("pointerenter", warm);
+    listen.addEventListener("focus", warm);
+
+    // If loading fails (a dropped connection, or a server that answers a range
+    // request badly), the audio element is dead until it is reloaded. Reload it
+    // from a fresh URL, so the browser does not replay the cached request that
+    // failed, and carry on from the same place. Automatic retries are limited to
+    // one every few seconds; pressing play always retries.
+    let lastRecovery = 0;
+    let recoveries = 0;
+    const baseSrc = audio.getAttribute("src");
+    function recover(thenPlay, byUser) {
+      if (!byUser && Date.now() - lastRecovery < 3000) return;
+      lastRecovery = Date.now();
+      const t = audio.currentTime || 0;
+      console.warn(`tts: audio failed (${audio.error ? audio.error.message || audio.error.code : "unknown"}); reloading at ${fmt(t)}`);
+      dragging = true; // keep the seek bar where it was while the reload starts from zero
+      audio.addEventListener(
+        "loadedmetadata",
+        () => {
+          audio.currentTime = t;
+          dragging = false;
+          render();
+          if (thenPlay) playAudio();
+        },
+        { once: true },
+      );
+      audio.src = `${baseSrc}&retry=${++recoveries}`;
+      audio.load();
+    }
+
+    function playAudio() {
+      if (audio.error) return recover(true, true);
+      audio.play().catch((e) => {
+        // AbortError only means a pause or seek interrupted the start; anything else is worth knowing.
+        if (e.name !== "AbortError") console.warn("tts: could not play:", e);
+      });
+    }
+
+    function open() {
+      audio.preload = "auto";
+      player.hidden = false;
+      document.body.classList.add("tts-open");
+      listen.setAttribute("aria-expanded", "true");
+      restore();
+      playAudio();
+    }
+
+    // ---- Word highlighting ------------------------------------------------
+    // The words file lists, for each page element read aloud, when each of its
+    // words is spoken. Elements are found by their index in the same selector
+    // the generator used; a text fingerprint guards against a mismatch.
+    const follow = (function () {
+      const btn = $(".tts-follow");
+      const wordsUrl = {{ audio.words | relative_url | append: "?v=" | append: audio.hash | jsonify }};
+      const followKey = "tts-follow";
+      const canHighlight = typeof CSS !== "undefined" && CSS.highlights && typeof Highlight === "function";
+      let on = false;
+      let events = null; // flat, time-sorted: [t, blockIndex, wordIndex] triples
+      let blocks = null;
+      let loading = null;
+      let last = -1;
+      let readingEl = null;
+      let raf = 0;
+      let userScrolledAt = 0;
+
+      if (!btn) return { tick() {}, clear() {}, start() {} };
+
+      const collapse = (s) => s.replace(/\s+/g, " ").trim();
+      function inNestedList(node, el) {
+        for (let p = node.parentNode; p && p !== el; p = p.parentNode) if (p.nodeName === "UL" || p.nodeName === "OL") return true;
+        return false;
+      }
+      // Text nodes and their combined text, skipping nested lists (mirrors own_text() in generate.py).
+      function textOf(el) {
+        const nodes = [];
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let text = "";
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          if (inNestedList(n, el)) continue;
+          nodes.push({ node: n, start: text.length });
+          text += n.data;
+        }
+        return { nodes, text };
+      }
+      function rangeFor(block, wi) {
+        if (!block.words) {
+          const { nodes, text } = textOf(block.el);
+          block.words = [...text.matchAll(/\S+/g)].map((m) => [m.index, m.index + m[0].length]);
+          block.nodes = nodes;
+        }
+        const w = block.words[wi];
+        if (!w) return null;
+        const at = (off, end) => {
+          let k = block.nodes.length - 1;
+          while (k > 0 && (end ? block.nodes[k].start >= off : block.nodes[k].start > off)) k--;
+          return [block.nodes[k].node, off - block.nodes[k].start];
+        };
+        const range = document.createRange();
+        range.setStart(...at(w[0], false));
+        range.setEnd(...at(w[1], true));
+        return range;
+      }
+
+      function load() {
+        if (!loading) {
+          loading = fetch(wordsUrl)
+            .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+            .then((data) => {
+              const root = document.getElementById("markdown-content");
+              const els = root ? root.querySelectorAll(data.selector) : [];
+              const all = [];
+              blocks = data.blocks.map((b, bi) => {
+                let el = b.el === -1 ? document.querySelector(".post-title") : els[b.el];
+                const matches = (e) => e && collapse(textOf(e).text).startsWith(b.fp);
+                if (!matches(el)) {
+                  // The page changed after the audio was made; look nearby, else skip this block.
+                  el = null;
+                  for (let d = 1; d <= 5 && !el; d++) el = [els[b.el - d], els[b.el + d]].find(matches) || null;
+                }
+                if (el) for (let k = 0; k < b.w.length; k += 2) all.push([b.w[k] / 100, bi, b.w[k + 1]]);
+                return { el, end: b.end / 100 };
+              });
+              events = all.sort((x, y) => x[0] - y[0]);
+            });
+        }
+        return loading;
+      }
+
+      function setReading(el) {
+        if (readingEl === el) return;
+        if (readingEl) readingEl.classList.remove("tts-reading");
+        readingEl = el;
+        if (el) el.classList.add("tts-reading");
+      }
+
+      function clear() {
+        last = -1;
+        setReading(null);
+        if (canHighlight) CSS.highlights.delete("tts-word");
+      }
+
+      function keepInView(range, el) {
+        if (Date.now() - userScrolledAt < 4000) return; // the reader is scrolling; don't fight them
+        const r = (range || el).getBoundingClientRect();
+        const top = 90; // below the fixed navbar
+        const bottom = window.innerHeight - (player.offsetHeight + 40);
+        if (r.top < top || r.bottom > bottom) {
+          const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          window.scrollTo({ top: window.scrollY + r.top - top - (bottom - top) / 3, behavior: reduce ? "auto" : "smooth" });
+        }
+      }
+
+      function tick() {
+        if (!on || !events) return;
+        const t = audio.currentTime;
+        let lo = 0, hi = events.length - 1, i = -1;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (events[mid][0] <= t + 0.05) { i = mid; lo = mid + 1; } else hi = mid - 1;
+        }
+        if (i < 0 || t > blocks[events[i][1]].end + 0.1) {
+          if (last !== -1) clear();
+          return;
+        }
+        if (i === last) return;
+        last = i;
+        const [, bi, wi] = events[i];
+        const block = blocks[bi];
+        setReading(block.el);
+        const range = rangeFor(block, wi);
+        if (canHighlight && range) CSS.highlights.set("tts-word", new Highlight(range));
+        keepInView(range, block.el);
+      }
+
+      function loop() {
+        tick();
+        raf = audio.paused ? 0 : requestAnimationFrame(loop);
+      }
+      function start() {
+        if (on && !raf) raf = requestAnimationFrame(loop);
+      }
+
+      function set(value, save) {
+        on = value;
+        btn.setAttribute("aria-pressed", String(on));
+        if (save) store.set(followKey, on ? "1" : "0");
+        if (on) {
+          load().then(() => { last = -1; tick(); start(); }).catch(() => {
+            on = false;
+            btn.setAttribute("aria-pressed", "false");
+            btn.disabled = true;
+            btn.title = "Word highlighting is unavailable";
+          });
+        } else {
+          cancelAnimationFrame(raf);
+          raf = 0;
+          clear();
+        }
+      }
+
+      ["wheel", "touchmove"].forEach((ev) => window.addEventListener(ev, () => (userScrolledAt = Date.now()), { passive: true }));
+      window.addEventListener("keydown", (e) => {
+        if (["PageUp", "PageDown", "ArrowUp", "ArrowDown", "Home", "End", " "].includes(e.key) && !player.contains(e.target)) userScrolledAt = Date.now();
+      });
+      btn.addEventListener("click", () => set(!on, true));
+      if (store.get(followKey) === "1") set(true, false);
+
+      return { tick: () => { last = -1; tick(); }, clear, start };
+    })();
+
+    function close() {
+      follow.clear();
+      audio.pause();
+      player.hidden = true;
+      chList.hidden = true;
+      chBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("tts-open");
+      listen.setAttribute("aria-expanded", "false");
+      listen.focus();
+    }
+
+    const r = parseFloat(store.get(rateKey));
+    setRate(rates.includes(r) ? r : 1);
+
+    listen.addEventListener("click", () => (player.hidden ? open() : audio.paused ? playAudio() : audio.pause()));
+    $(".tts-close").addEventListener("click", close);
+    playBtn.addEventListener("click", () => (audio.paused || audio.error ? playAudio() : audio.pause()));
+    $(".tts-back").addEventListener("click", () => jump(audio.currentTime - 15));
+    $(".tts-fwd").addEventListener("click", () => jump(audio.currentTime + 15));
+    speedBtn.addEventListener("click", () => {
+      const next = rates[(rates.indexOf(audio.playbackRate) + 1) % rates.length];
+      setRate(next);
+      store.set(rateKey, next);
+    });
+    chBtn.addEventListener("click", () => {
+      chList.hidden = !chList.hidden;
+      chBtn.setAttribute("aria-expanded", String(!chList.hidden));
+      if (!chList.hidden && chapters[current]) chapters[current].el.scrollIntoView({ block: "nearest" });
+    });
+    chapters.forEach((c) =>
+      c.el.addEventListener("click", () => {
+        jump(c.t);
+        playAudio();
+      }),
+    );
+
+    seek.addEventListener("input", () => {
+      dragging = true;
+      $(".tts-now").textContent = fmt(+seek.value);
+      seek.style.setProperty("--tts-fill", `${(seek.value / total) * 100}%`);
+    });
+    seek.addEventListener("change", () => {
+      dragging = false;
+      jump(+seek.value);
+    });
+
+    audio.addEventListener("play", () => {
+      setPlaying(true);
+      follow.start();
+    });
+    audio.addEventListener("seeked", () => follow.tick());
+    audio.addEventListener("pause", () => {
+      setPlaying(false);
+      store.set(posKey, audio.currentTime);
+    });
+    audio.addEventListener("error", () => recover(!audio.paused));
+    audio.addEventListener("waiting", () => player.classList.add("is-loading"));
+    audio.addEventListener("playing", () => player.classList.remove("is-loading"));
+    audio.addEventListener("ended", () => {
+      store.del(posKey);
+      jump(0);
+    });
+    let lastSave = 0;
+    audio.addEventListener("timeupdate", () => {
+      render();
+      if (Math.abs(audio.currentTime - lastSave) > 5) {
+        lastSave = audio.currentTime;
+        store.set(posKey, lastSave);
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !player.hidden) {
+        if (!chList.hidden) chBtn.click();
+        else close();
+      }
+    });
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: {{ page.title | jsonify }}, artist: {{ site.name | jsonify }} });
+      const ms = navigator.mediaSession;
+      ms.setActionHandler("play", () => playAudio());
+      ms.setActionHandler("pause", () => audio.pause());
+      ms.setActionHandler("seekbackward", (d) => jump(audio.currentTime - (d.seekOffset || 15)));
+      ms.setActionHandler("seekforward", (d) => jump(audio.currentTime + (d.seekOffset || 15)));
+      try { ms.setActionHandler("seekto", (d) => jump(d.seekTime)); } catch (e) {}
+    }
+
+    render();
+  })();
+</script>
