@@ -1,10 +1,10 @@
 {
   "src": "/assets/audio/posts/cocoon-claude-code-in-a-tiny-vm.mp3",
   "words": "/assets/audio/posts/cocoon-claude-code-in-a-tiny-vm.words.json",
-  "duration": 1201.3,
-  "bytes": 7208870,
+  "duration": 1217.5,
+  "bytes": 7306070,
   "voice": "Kokoro bm_george",
-  "hash": "49c7508a7f7f00c0",
+  "hash": "1590534da072fa6f",
   "chapters": [
     {
       "t": 0.0,
@@ -25,67 +25,67 @@
       "level": 2
     },
     {
-      "t": 280.3,
+      "t": 279.2,
       "title": "The big picture",
       "id": "-the-big-picture",
       "level": 2
     },
     {
-      "t": 378.37,
+      "t": 384.65,
       "title": "The one door out",
       "id": "-the-one-door-out",
       "level": 2
     },
     {
-      "t": 507.12,
+      "t": 513.4,
       "title": "Seeing what Claude Code connects to",
       "id": "-seeing-what-claude-code-connects-to",
       "level": 3
     },
     {
-      "t": 556.75,
+      "t": 568.75,
       "title": "Your project folder: live or copy",
       "id": "-your-project-folder-live-or-copy",
       "level": 2
     },
     {
-      "t": 635.73,
+      "t": 648.68,
       "title": "Try it",
       "id": "-try-it",
       "level": 2
     },
     {
-      "t": 799.65,
+      "t": 814.53,
       "title": "For the curious: what is under the hood",
       "id": "-for-the-curious-what-is-under-the-hood",
       "level": 2
     },
     {
-      "t": 816.23,
+      "t": 831.1,
       "title": "The whole system",
       "id": "️-the-whole-system",
       "level": 3
     },
     {
-      "t": 861.68,
+      "t": 876.55,
       "title": "Inside each part",
       "id": "-inside-each-part",
       "level": 3
     },
     {
-      "t": 929.93,
+      "t": 944.9,
       "title": "How it boots, and what keeps it small",
       "id": "-how-it-boots-and-what-keeps-it-small",
       "level": 3
     },
     {
-      "t": 1006.68,
+      "t": 1022.9,
       "title": "What it does not do",
       "id": "️-what-it-does-not-do",
       "level": 2
     },
     {
-      "t": 1128.15,
+      "t": 1144.35,
       "title": "Wrapping up",
       "id": "-wrapping-up",
       "level": 2
