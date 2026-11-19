@@ -47,7 +47,7 @@ You can build walls on Linux in several ways, with containers, seccomp filters, 
 
 A virtual machine is different. The agent runs on a **second kernel**, and your real kernel only sees a small, boring set of virtual devices. To get out, you would have to break the VM software, not just trick a program on your system.
 
-The usual objection is "VMs are heavy and slow". A microVM is not. In my runs, the first program inside the VM started 0.07 seconds after the kernel began booting, and once everything is set up, a VM boots and runs `claude --version` in about a quarter of a second.
+The usual objection is "VMs are heavy and slow". A microVM is not. In my runs, the first program inside the VM started about a tenth of a second after the kernel began booting (0.07 s on my first image, 0.11 s on the current, larger one).
 
 ## 🧭 The big picture
 
@@ -66,7 +66,7 @@ When you type `cocoon`, this is what happens:
 4. 💬 **You use Claude Code** exactly as you normally would. Your keystrokes go in, its screen comes out, and resizing your terminal resizes the VM's too.
 5. 🧹 **You quit** with `/exit`. The VM powers off, cocoon prints what the agent tried to connect to, and everything temporary is deleted.
 
-Inside the VM, the system is a small [Alpine Linux](https://alpinelinux.org/) with the tools a developer expects: bash, git, gh, ssh, ripgrep, jq, vim, Python, Node.js, a C compiler, Rust, Java and even headless Chromium. Its root disk is **read-only**, so a session cannot change the system underneath itself. Anything the agent installs lives on a scratch disk that is thrown away at the end.
+Inside the VM, the system is a small [Alpine Linux](https://alpinelinux.org/) with the tools a developer expects: bash, git, gh, ssh, ripgrep, jq, vim, Python, Node.js, a C compiler, Rust, Java, Emacs and even headless Chromium. (Maven Central is not on the default allowlist, so `mvn` cannot fetch dependencies until you add it.) Its root disk is **read-only**, so a session cannot change the system underneath itself. Anything the agent installs lives on a scratch disk that is thrown away at the end.
 
 ## 🚪 The one door out
 
@@ -92,7 +92,7 @@ One honest detail: the proxy sees **which host** the agent talked to and how man
 
 ### 🔭 Seeing what Claude Code connects to
 
-While building cocoon, I ran Claude Code with a deliberately wrong API key, just to see what it connects to on its own. The key was refused, so nothing was done or billed. The proxy log showed the calls to Anthropic that I expected, and one more: a connection to Datadog, a monitoring service. That is ordinary telemetry, the kind of thing most software sends so its makers can see how it is doing. It has nothing to do with your account, and it costs you nothing. Datadog was not on the allowlist, so cocoon declined it, and Claude Code carried on as normal.
+While building cocoon, I ran Claude Code with a deliberately wrong API key, just to see what it connects to on its own. The key was refused, so nothing was done or billed. The proxy log showed the calls to Anthropic that I expected, and one more: a connection to Datadog, a logging and monitoring service. I take that to be ordinary telemetry, the kind of thing most software sends so its makers can see how it is doing, but I cannot see inside the encrypted connection, so I do not know exactly what it carried. Datadog was not on the allowlist, so cocoon declined it, and Claude Code carried on as normal.
 
 There was nothing to fix. It is simply a nice example of what the log is for: it shows you everything your tools reach for, so you can decide what to allow. 👀
 
@@ -105,7 +105,7 @@ The agent needs your code, so cocoon has to get a project folder into the VM. Th
   <figcaption>Live is convenient. Copy is careful.</figcaption>
 </figure>
 
-**Live mode** (the default) shares your real folder with the VM. You and the agent see each other's edits instantly, so you can keep your editor open while it works. The catch is in the picture: **nothing protects the folder**. If the agent deletes it, it is gone. Use live mode on a folder that is under version control. It is also slower for folders with huge numbers of small files such as `node_modules`; it can be three to ten times slower than on a normal disk.
+**Live mode** (the default) shares your real folder with the VM. You and the agent see each other's edits instantly, so you can keep your editor open while it works. The catch is in the picture: **nothing protects the folder**. If the agent deletes it, it is gone. Use live mode on a folder that is under version control. It is also slower for folders with huge numbers of small files such as `node_modules`; in my one run it was roughly three to ten times slower than on a normal disk.
 
 **Copy mode** is the careful one. The agent works on a throwaway copy. When you quit, cocoon compares three versions of every file (how your folder looked when you started, how it looks now, and what the agent left) and shows you just the agent's changes:
 
@@ -130,7 +130,7 @@ Press `y` and they are applied. Press `N`, and your folder was never touched. Fi
 | 🧱 **e2fsprogs** | the `mkfs.ext4` and `debugfs` tools, which nearly every distribution already has |
 | 💾 **About 4 GB of disk** | for the first run |
 | 🧠 **About 4 GB of memory** | per session, and you can change it |
-| 🔑 **A Claude login** | a subscription (Pro, Max, Team or Enterprise) or an Anthropic API key |
+| 🔑 **A Claude login** | a Claude subscription or an Anthropic API key |
 
 You do **not** need root, Docker or anything else. The binary is large, about 540 megabytes, because the whole VM (kernel, system disk and helpers) is inside it.
 
@@ -164,7 +164,7 @@ cd ~/code/my-project
 cocoon
 ```
 
-The first run takes about ten seconds. cocoon unpacks the VM and downloads Claude Code from npm, checking it against a fingerprint (a SHA-512 hash) that the binary was built with. Claude Code is proprietary, so cocoon does not bundle it; it fetches it, and refuses to use a copy that does not match. After that, a VM boots in well under a second. You will see a short summary of what is about to start, a five-second boot menu in the style of a boot loader (press Enter to boot at once), and then Claude Code, working in your folder.
+The first run takes about ten seconds. cocoon unpacks the VM and downloads Claude Code from npm, checking it against a fingerprint (a SHA-512 hash) that the binary was built with. Claude Code is proprietary, so cocoon does not bundle it; it fetches it, and refuses to use a copy that does not match. After that, a VM is up in about a tenth of a second, and Claude Code starts right after. You will see a short summary of what is about to start, a five-second boot menu in the style of a boot loader (press Enter to boot at once), and then Claude Code, working in your folder.
 
 | I want to... | Run |
 | --- | --- |
@@ -194,7 +194,7 @@ Three things to notice. Everything in the orange frame is an ordinary program ru
 
 ### 🧩 Inside each part
 
-Now zoom in. On the left is cocoon itself: one Rust program made of a dozen small files, each with one job. One handles the command line, one reads your settings, one unpacks the VM's pieces from inside the binary, and one starts and watches the VM. That one in turn uses the rest: the disk builder, the proxy, the port forwarder, and the pieces that manage your terminal. Two more handle `--attach` and the review step in copy mode. On the host, cocoon runs two helpers, Cloud Hypervisor and virtiofsd, and borrows two standard Linux tools, `mkfs.ext4` and `debugfs`, to build and read the VM's disks without root.
+Now zoom in. On the left is cocoon itself: one Rust program made of about fifteen small files, each with one job. One handles the command line, one reads your settings, one unpacks the VM's pieces from inside the binary, and one starts and watches the VM. That one in turn uses the rest: the disk builder, the proxy, the port forwarder, and the pieces that manage your terminal. Two more handle `--attach` and the review step in copy mode. On the host, cocoon runs two helpers, Cloud Hypervisor and virtiofsd, and borrows two standard Linux tools, `mkfs.ext4` and `debugfs`, to build and read the VM's disks without root.
 
 On the right is the inside of the VM. After the kernel boots, it starts `cc-init`, which has a few small jobs of its own: finding the disks, serving extra shells, relaying forwarded ports, and applying window-size changes. When it is ready, it runs Claude Code on the console and starts the forwarder that carries network traffic out.
 
@@ -215,7 +215,7 @@ flowchart LR
 
 - 🪶 **No installer, no root, even for disks.** Normally you need root to build a disk image with files owned by root. cocoon makes them with `mkfs.ext4 -d`, which copies a folder into a new ext4 disk as an ordinary user, and then fixes up each file's owner and permissions with `debugfs`. Even the shared folder runs as you: its helper, virtiofsd, lives in its own user namespace where the VM's "root" is just your user.
 - 🐧 **No initramfs.** Most Linux machines boot into a small temporary system first, which loads drivers before the real disk can be mounted. This kernel is built with the drivers it needs already inside, so it mounts the disk and starts `cc-init` directly. That is part of why it is fast.
-- 🦀 **Tiny static programs.** `cc-init` and the forwarder are small Rust programs with no dependencies on the system image. The whole thing, host side included, is Rust.
+- 🦀 **Tiny static programs.** `cc-init` and the forwarder are small Rust programs with no dependencies on the system image. The host driver is Rust too (the kernel and the Alpine tools are not).
 - ✅ **Every download is checked.** The kernel, Cloud Hypervisor, virtiofsd, Alpine and Claude Code are each checked against a pinned checksum or a signed package list before use.
 
 ## ⚠️ What it does not do
@@ -223,7 +223,7 @@ flowchart LR
 A sandbox that oversells itself is worse than none, so here is the honest list.
 
 - 📁 **Live mode can delete your folder.** That is the cost of convenience. Use git, or switch to copy mode.
-- 🧱 **A strong wall that keeps getting stronger.** The wall is hardware virtualization plus software (KVM and Cloud Hypervisor). Cloud Hypervisor is written in Rust and keeps to a small set of virtual devices, and the agent always runs on a kernel of its own, which is a solid foundation. No software is bug-free, so think of this as a strong layer rather than a guarantee. More hardening is on the way: next on my list is locking Cloud Hypervisor down further with its own Landlock option. One limit belongs to every VM: side channels, where programs sharing a CPU can learn things from timing. I wrote about those, and how to reduce the risk, in [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}).
+- 🧱 **A strong wall that keeps getting stronger.** The agent runs on its own kernel, behind KVM and Cloud Hypervisor. Cloud Hypervisor is written in Rust and keeps to a small set of virtual devices, and the agent always runs on a kernel of its own, which is a solid foundation. No software is bug-free, so think of this as a strong layer rather than a guarantee. More hardening is on the way: next on my list is locking Cloud Hypervisor down further with its own Landlock option. One limit belongs to every VM: side channels, where programs sharing a CPU can learn things from timing. I wrote about those, and how to reduce the risk, in [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}).
 - 🌐 **An allowed host is an allowed host.** The proxy can only judge by name. If GitHub is on your list, the agent can talk to GitHub, and a tricked agent could in principle send your code somewhere through it. Keep the list as short as you can live with, and read the log.
 - 🔑 **The login lives with the agent.** Claude Code needs your login to work, so during a session it is inside the VM. cocoon passes it on a throwaway disk that is deleted afterwards, and keeps no secrets on the command line or in the system image. Saved logins sit on your disk readable only by you, but they are **not** encrypted, just protected by file permissions like your SSH keys.
 - 🧪 **It is early.** This is version 0.0.1. It is built for x86_64 Linux only. An arm64 build exists, but no arm64 VM has been booted yet, and it is not released. The source is not published.
