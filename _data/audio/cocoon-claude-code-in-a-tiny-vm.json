@@ -1,0 +1,76 @@
+{
+  "src": "/assets/audio/posts/cocoon-claude-code-in-a-tiny-vm.mp3",
+  "words": "/assets/audio/posts/cocoon-claude-code-in-a-tiny-vm.words.json",
+  "duration": 1042.0,
+  "bytes": 6252566,
+  "voice": "Kokoro bm_george",
+  "hash": "7a368fab832f2f1d",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 58.93,
+      "title": "TL;DR",
+      "id": "-tldr",
+      "level": 2
+    },
+    {
+      "t": 202.58,
+      "title": "Why a whole virtual machine?",
+      "id": "-why-a-whole-virtual-machine",
+      "level": 2
+    },
+    {
+      "t": 280.3,
+      "title": "The big picture",
+      "id": "-the-big-picture",
+      "level": 2
+    },
+    {
+      "t": 378.37,
+      "title": "The one door out",
+      "id": "-the-one-door-out",
+      "level": 2
+    },
+    {
+      "t": 507.12,
+      "title": "Seeing what Claude Code connects to",
+      "id": "-seeing-what-claude-code-connects-to",
+      "level": 3
+    },
+    {
+      "t": 556.75,
+      "title": "Your project folder: live or copy",
+      "id": "-your-project-folder-live-or-copy",
+      "level": 2
+    },
+    {
+      "t": 635.73,
+      "title": "Try it",
+      "id": "-try-it",
+      "level": 2
+    },
+    {
+      "t": 799.65,
+      "title": "For the curious: what is under the hood",
+      "id": "-for-the-curious-what-is-under-the-hood",
+      "level": 2
+    },
+    {
+      "t": 881.33,
+      "title": "What it does not do",
+      "id": "️-what-it-does-not-do",
+      "level": 2
+    },
+    {
+      "t": 995.0,
+      "title": "Wrapping up",
+      "id": "-wrapping-up",
+      "level": 2
+    }
+  ]
+}

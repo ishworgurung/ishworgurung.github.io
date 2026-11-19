@@ -35,6 +35,33 @@ passkeys	pass keys
 AWS	A-W-S
 OS	O-S
 
+# --- cocoon post: VM plumbing, file systems and tools. Kept to words no other post
+# uses (a rule that changes another post's text makes its audio rebuild), so the
+# common ones (VM, microVM, KVM, npm, ssh) are left to Kokoro.
+crates.io	crates dot I O
+slash kvm	slash K V M
+virtio-fs	virt-ee-oh F S
+virtiofsd	virt-ee-oh F S D
+initramfs	init ram F S
+debugfs	debug F S
+mkfs	make F S
+ext4	ext four
+cc-init	C C init
+cc	C C
+PID 1	P I D one
+https proxy	H T T P S proxy
+CONNECT	connect
+SHA-512	S H A five twelve
+0.0.1	zero point zero point one
+403	four oh three
+Datadog	Data dog
+claude.ai	claude dot A I
+Node.js	Node J S
+PyPI	pie P I
+ripgrep	rip grep
+jq	J Q
+gh	G H
+
 # --- Networking
 SYN-ACKs	sin acks
 SYN-ACK	sin ack
