@@ -1,0 +1,104 @@
+/*******************************************************************************
+ * "Buy me a coffee", styled like Buy Me a Coffee's own button: their yellow
+ * (#ffdd00) and a lidded cup, with the site's heading face for the label.
+ *   .bmc-float  fixed bottom-right pill on every page except posts (footer.liquid)
+ *   .bmc-dock   on posts: sticks to the bottom-right of the post body (support-link.liquid)
+ ******************************************************************************/
+
+.bmc-float,
+.bmc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem 0.6rem 0.9rem;
+  background: #ffdd00;
+  color: #0d0c22 !important;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-decoration: none !important;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(13, 12, 34, 0.18), 0 8px 20px rgba(13, 12, 34, 0.14);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(13, 12, 34, 0.22), 0 12px 26px rgba(13, 12, 34, 0.18);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--global-theme-color);
+    outline-offset: 3px;
+  }
+
+  .bmc-cup {
+    flex: none;
+  }
+
+  .bmc-label {
+    letter-spacing: 0.01em;
+  }
+}
+
+.bmc-float {
+  position: fixed;
+  right: 5rem; // left of the theme's back-to-top button
+  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1030; // under the read-aloud player (1040)
+}
+
+// Posts: the dock sits at the end of the article and, while the end is still
+// below the fold, sticks to the bottom of the window at the body's right edge.
+.bmc-dock {
+  position: sticky;
+  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 10; // above the text, below the navbar when it scrolls up to rest
+  display: flex;
+  justify-content: flex-end;
+  margin: 1rem 3.75rem 0 0; // clear of the back-to-top button
+  pointer-events: none; // only the pill itself is clickable
+
+  .bmc-pill {
+    pointer-events: auto;
+  }
+}
+
+// Posts use the dock, not the fixed pill.
+body:has(.bmc-dock) .bmc-float {
+  display: none;
+}
+
+// With the Contents sidebar beside the text, line up with the text column's right edge.
+@media (min-width: 1200px) {
+  .post-single:has(.post-toc) .bmc-dock {
+    margin-right: calc(17rem + 3.5rem);
+  }
+}
+
+@media (max-width: 900px) {
+  // Phones and tablets: just the cup on the fixed pill, and out of the player's way.
+  .bmc-float {
+    padding: 0.65rem;
+
+    .bmc-label {
+      display: none;
+    }
+  }
+
+  body.tts-open .bmc-float,
+  body.tts-open .bmc-dock {
+    display: none;
+  }
+}
+
+@media print {
+  .bmc-float,
+  .bmc-dock {
+    display: none;
+  }
+}

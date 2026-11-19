@@ -356,7 +356,7 @@
   align-items: center;
   min-width: 0;
   flex: 0 1 auto;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   white-space: nowrap;
   color: var(--global-text-color);

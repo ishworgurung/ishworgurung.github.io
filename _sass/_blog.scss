@@ -57,7 +57,7 @@
   align-items: center;
   gap: 1rem;
   margin: 1.75rem 0 0.25rem;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.2em;
@@ -129,7 +129,7 @@
   }
 
   .note-month {
-    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-size: 0.7rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -166,7 +166,7 @@
 }
 
 .note-meta {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   color: var(--global-text-color-light);

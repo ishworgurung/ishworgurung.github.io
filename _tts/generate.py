@@ -109,7 +109,7 @@ def find_posts(only: list[str], site: Path) -> list[dict]:
 LINK_OPEN, LINK_CLOSE = "\x01", "\x02"
 # Elements that can be read as one block. The player uses the same selector to find them.
 BLOCK_SELECTOR = "p, li, h1, h2, h3, h4, h5, h6, summary, dt, dd, figcaption"
-SKIP = "script style svg figure img hr .post-toc .cve-chart .mermaid .quote-credit .footnotes sup.footnote-ref".split()
+SKIP = "script style svg figure img hr .post-toc .cve-chart .mermaid .quote-credit .support-link .footnotes sup.footnote-ref".split()
 CONTAINERS = {"div", "section", "aside", "details", "blockquote", "ul", "ol", "article", "main"}
 
 

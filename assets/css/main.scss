@@ -30,5 +30,18 @@
 // Other specialized styles
 @use "tabs";
 @use "audio";
+@use "support";
 @use "teachings";
 @use "typograms";
+
+/* DejaVu Sans, symbols only (arrows, check marks, dingbats, punctuation): the last
+   fallback for glyphs Crimson Pro, Source Sans 3 and JetBrains Mono lack. Uses the
+   reader's own DejaVu Sans if installed, else this subset (licence beside it). */
+@font-face {
+  font-family: "DejaVu Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("DejaVu Sans"), local("DejaVuSans"), url("{{ '/assets/fonts/DejaVuSans-symbols.woff2' | relative_url }}") format("woff2");
+  unicode-range: U+00A0-00BF, U+2000-206F, U+2190-23FF, U+2460-27BF, U+2900-2BFF;
+}

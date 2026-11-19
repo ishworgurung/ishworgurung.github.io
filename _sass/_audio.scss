@@ -28,7 +28,7 @@
 
   .tts-listen-meta {
     color: var(--global-text-color-light);
-    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-size: 0.78rem;
 
     &::before {
@@ -103,7 +103,7 @@
 .tts-time {
   padding-top: 0.15rem;
   color: var(--global-text-color-light);
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -279,7 +279,7 @@
 .tts-speed {
   min-width: 3.2rem;
   color: var(--global-text-color-light);
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
 }
 
@@ -325,7 +325,7 @@
 
     time {
       color: var(--global-text-color-light);
-      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-family: var(--font-mono);
       font-size: 0.75rem;
       font-weight: 400;
       padding-top: 0.1rem;

@@ -60,8 +60,8 @@ code {
 
 :not(pre) > code {
   // Relative to the surrounding text, so code in headings, tables and small
-  // print scales with it. JetBrains Mono's tall x-height matches the serif at 0.9em.
-  font-size: 0.9em;
+  // print scales with it. JetBrains Mono has a tall x-height and Crimson Pro a small one, so 0.82em keeps them level.
+  font-size: 0.82em;
   font-weight: 400;
   padding: 2px 4px;
 }
