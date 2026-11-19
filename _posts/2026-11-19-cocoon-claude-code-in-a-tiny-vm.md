@@ -179,7 +179,31 @@ Anything cocoon does not recognise goes straight to Claude Code, so `cocoon --mo
 
 ## 🔬 For the curious: what is under the hood
 
-If you like knowing how things work, a few details I enjoyed:
+If you like knowing how things work, this section goes one level deeper. The two diagrams below come from the design notes in the project's source, redrawn so they are easier to read.
+
+### 🗺️ The whole system
+
+First, every part of the system and how they connect. Blue is you and your files, orange is what runs on your machine as you, green is what runs inside the VM, purple is the virtual hardware that links the two, and pink is the outside world.
+
+<figure class="post-figure">
+  <img src="/assets/img/posts/2026-11-19-cocoon-architecture.png" width="900" height="600" alt="System architecture diagram. On the left, in a blue frame labelled you, on the host: your terminal running cocoon, a second terminal running cocoon --attach, your browser at 127.0.0.1:3000, the settings file cocoon.toml, the session log in /tmp, and your project folder. In the middle, in an orange frame labelled host process, as you: the cocoon driver, which contains the proxy and the port forwarder; below it Cloud Hypervisor, which runs the VM on /dev/kvm; and below that virtiofsd, which shares your folder in live mode. Arrows: your terminal talks to cocoon both ways, the second terminal attaches, the browser connects through the -P port, cocoon reads the settings file and writes the session log, cocoon starts Cloud Hypervisor, virtiofsd feeds Cloud Hypervisor over vhost-user, and your project folder is shared with virtiofsd in live mode. On the right, in a purple dashed frame labelled the microVM: Claude Code with bash, git and node; cc-init, the first program; a vsock forwarder on 127.0.0.1:3128; the VM's own Linux kernel with virtio drivers; and a note saying no network card. Cloud Hypervisor and the kernel are joined by virtio, the vsock forwarder sends every outbound connection to the cocoon proxy over vsock, and the proxy alone connects onward to the internet, only to what cocoon.toml allows.">
+  <figcaption>You type into cocoon. cocoon runs the VM and stands guard at its only door.</figcaption>
+</figure>
+
+Three things to notice. Everything in the orange frame is an ordinary program running as you. The VM talks to the outside through exactly two links to cocoon: virtual hardware devices (disks, a console, the shared folder) and the vsock pipe for network traffic. And cocoon's second job, besides running the VM, is the proxy, which is the only part that ever touches the internet.
+
+### 🧩 Inside each part
+
+Now zoom in. On the left is cocoon itself: one Rust program made of a dozen small files, each with one job. One handles the command line, one reads your settings, one unpacks the VM's pieces from inside the binary, and one starts and watches the VM. That one in turn uses the rest: the disk builder, the proxy, the port forwarder, and the pieces that manage your terminal. Two more handle `--attach` and the review step in copy mode. On the host, cocoon runs two helpers, Cloud Hypervisor and virtiofsd, and borrows two standard Linux tools, `mkfs.ext4` and `debugfs`, to build and read the VM's disks without root.
+
+On the right is the inside of the VM. After the kernel boots, it starts `cc-init`, which has a few small jobs of its own: finding the disks, serving extra shells, relaying forwarded ports, and applying window-size changes. When it is ready, it runs Claude Code on the console and starts the forwarder that carries network traffic out.
+
+<figure class="post-figure">
+  <img src="/assets/img/posts/2026-11-19-cocoon-components.png" width="900" height="555" alt="Component diagram. On the left, an orange frame labelled cocoon, one static binary. The file main.rs, the command line, connects to vm.rs, which starts and watches the VM. Under main.rs: config.rs reads cocoon.toml, assets.rs unpacks the VM pieces, attach.rs is the second shell client, results.rs handles copy-mode changes, doctor.rs checks your machine, and report.rs writes the summary and log. Under vm.rs: disks.rs builds the disks, proxy.rs is the allowlist proxy, forward.rs does port forwarding, term.rs handles the raw terminal and its size, and resize.rs sends the window size to the VM. vm.rs starts two host processes, cloud-hypervisor which runs the VM and virtiofsd which shares the folder. disks.rs and results.rs both use mkfs.ext4 and debugfs from e2fsprogs, with no root needed. On the right, a green dashed frame labelled inside the microVM: the Linux 7.3.1 kernel with virtio disk, vsock, fs and serial; it starts cc-init, the first program, which contains disks.rs finding disks by serial number, attach.rs running shells on ptys, forward.rs relaying to localhost, resize.rs applying the window size, and console.rs running the program on the console. cc-init starts claude, which is Claude Code, and the forwarder on 127.0.0.1:3128. A purple box lists the disks it mounts: the read-only system disk, the workspace, Claude Code, and the scratch disk for root and tmp.">
+  <figcaption>The file names are the real ones from the source, in case you want to go and look.</figcaption>
+</figure>
+
+### 🚀 How it boots, and what keeps it small
 
 <div class="mermaid">
 flowchart LR
@@ -199,7 +223,7 @@ flowchart LR
 A sandbox that oversells itself is worse than none, so here is the honest list.
 
 - 📁 **Live mode can delete your folder.** That is the cost of convenience. Use git, or switch to copy mode.
-- 🧱 **A VM is strong, not perfect.** The wall is built from hardware virtualization plus software (KVM and Cloud Hypervisor), and software has bugs. Cloud Hypervisor is written in Rust and keeps a small set of virtual devices, which helps, but I do not claim it is escape-proof. I have not yet locked Cloud Hypervisor down further with its own Landlock option; that is on my to-do list. And no VM stops side channels, where programs on the same CPU learn things from timing, which I wrote about in [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}).
+- 🧱 **A strong wall that keeps getting stronger.** The wall is hardware virtualization plus software (KVM and Cloud Hypervisor). Cloud Hypervisor is written in Rust and keeps to a small set of virtual devices, and the agent always runs on a kernel of its own, which is a solid foundation. No software is bug-free, so think of this as a strong layer rather than a guarantee. More hardening is on the way: next on my list is locking Cloud Hypervisor down further with its own Landlock option. One limit belongs to every VM: side channels, where programs sharing a CPU can learn things from timing. I wrote about those, and how to reduce the risk, in [When sandboxed agents talk through the CPU cache]({% post_url 2026-10-24-when-sandboxed-agents-talk-through-the-cpu-cache %}).
 - 🌐 **An allowed host is an allowed host.** The proxy can only judge by name. If GitHub is on your list, the agent can talk to GitHub, and a tricked agent could in principle send your code somewhere through it. Keep the list as short as you can live with, and read the log.
 - 🔑 **The login lives with the agent.** Claude Code needs your login to work, so during a session it is inside the VM. cocoon passes it on a throwaway disk that is deleted afterwards, and keeps no secrets on the command line or in the system image. Saved logins sit on your disk readable only by you, but they are **not** encrypted, just protected by file permissions like your SSH keys.
 - 🧪 **It is early.** This is version 0.0.1. It is built for x86_64 Linux only. An arm64 build exists, but no arm64 VM has been booted yet, and it is not released. The source is not published.
@@ -209,5 +233,7 @@ A sandbox that oversells itself is worse than none, so here is the honest list.
 The idea behind cocoon is small: give the agent a real computer of its own, with **one** door, and put you at the door. You can still be productive, and when something odd happens, it happens in a room you can throw away. 🦋
 
 If you try it, run `cocoon --doctor` first. The [troubleshooting guide](https://github.com/ishworgurung/cocoon-releases/blob/main/docs/TROUBLESHOOTING.md) in the repository covers the errors you are most likely to meet, and the [usage guide](https://github.com/ishworgurung/cocoon-releases/blob/main/docs/USAGE.md) has the config file and every switch.
+
+cocoon is a small independent project, and there is plenty more I want to do with it: confine Cloud Hypervisor further, release an arm64 build, and keep up with new versions of Claude Code. That takes time, and funding is what buys me that time. If cocoon is useful to you, or you would like to see it get stronger faster, a coffee (the yellow button on this page) goes a long way, and I am genuinely grateful for it. ☕ Thank you for reading.
 
 > Point-in-time (19 November 2026): cocoon v0.0.1. Details such as the default allowlist and the size of the download will change between releases; check the repository for the current state.
