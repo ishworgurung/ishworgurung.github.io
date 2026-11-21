@@ -1,10 +1,10 @@
 {
   "src": "/assets/audio/posts/when-sandboxed-agents-talk-through-the-cpu-cache.mp3",
   "words": "/assets/audio/posts/when-sandboxed-agents-talk-through-the-cpu-cache.words.json",
-  "duration": 4844.2,
-  "bytes": 29065907,
+  "duration": 4844.3,
+  "bytes": 29066339,
   "voice": "Kokoro bm_george",
-  "hash": "c80df339ba197c0a",
+  "hash": "59822f3e6d5492e9",
   "chapters": [
     {
       "t": 0.0,
@@ -67,73 +67,73 @@
       "level": 2
     },
     {
-      "t": 3296.13,
+      "t": 3296.2,
       "title": "Defence in depth",
       "id": "-defence-in-depth",
       "level": 2
     },
     {
-      "t": 3392.15,
+      "t": 3392.23,
       "title": "Layer 0: design so collusion does not matter",
       "id": "layer-0-design-so-collusion-does-not-matter",
       "level": 3
     },
     {
-      "t": 3504.1,
+      "t": 3504.18,
       "title": "Layer 1: placement removes the hardware channels",
       "id": "layer-1-placement-removes-the-hardware-channels",
       "level": 3
     },
     {
-      "t": 3643.88,
+      "t": 3643.95,
       "title": "Layer 2: harden hosts that must be shared",
       "id": "layer-2-harden-hosts-that-must-be-shared",
       "level": 3
     },
     {
-      "t": 3958.63,
+      "t": 3958.7,
       "title": "Layer 3: remove shared software state",
       "id": "layer-3-remove-shared-software-state",
       "level": 3
     },
     {
-      "t": 4102.78,
+      "t": 4102.85,
       "title": "Layer 4: add noise and take away clocks (weak)",
       "id": "layer-4-add-noise-and-take-away-clocks-weak",
       "level": 3
     },
     {
-      "t": 4178.48,
+      "t": 4178.55,
       "title": "Layer 5: detect and respond",
       "id": "layer-5-detect-and-respond",
       "level": 3
     },
     {
-      "t": 4276.83,
+      "t": 4276.9,
       "title": "Layer 6: assume escape, hold the perimeter",
       "id": "layer-6-assume-escape-hold-the-perimeter",
       "level": 3
     },
     {
-      "t": 4381.2,
+      "t": 4381.28,
       "title": "What “mitigated” means here",
       "id": "-what-mitigated-means-here",
       "level": 2
     },
     {
-      "t": 4541.55,
+      "t": 4541.63,
       "title": "The frontier",
       "id": "-the-frontier",
       "level": 2
     },
     {
-      "t": 4741.93,
+      "t": 4742.0,
       "title": "A checklist by threat level",
       "id": "-a-checklist-by-threat-level",
       "level": 2
     },
     {
-      "t": 4749.08,
+      "t": 4749.15,
       "title": "How this fits the earlier post",
       "id": "-how-this-fits-the-earlier-post",
       "level": 2

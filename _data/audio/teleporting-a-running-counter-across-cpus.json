@@ -1,0 +1,148 @@
+{
+  "src": "/assets/audio/posts/teleporting-a-running-counter-across-cpus.mp3",
+  "words": "/assets/audio/posts/teleporting-a-running-counter-across-cpus.words.json",
+  "duration": 3681.0,
+  "bytes": 22086667,
+  "voice": "Kokoro bm_george",
+  "hash": "4643b07e76c73ae6",
+  "chapters": [
+    {
+      "t": 0.0,
+      "title": "Introduction",
+      "id": null,
+      "level": 2
+    },
+    {
+      "t": 68.63,
+      "title": "The short answer",
+      "id": "-the-short-answer",
+      "level": 2
+    },
+    {
+      "t": 596.5,
+      "title": "Why would anyone want to do this?",
+      "id": "-why-would-anyone-want-to-do-this",
+      "level": 2
+    },
+    {
+      "t": 778.1,
+      "title": "Why can’t a normal program just move?",
+      "id": "-why-cant-a-normal-program-just-move",
+      "level": 2
+    },
+    {
+      "t": 917.42,
+      "title": "The setup: four machines on one desktop",
+      "id": "-the-setup-four-machines-on-one-desktop",
+      "level": 2
+    },
+    {
+      "t": 1064.9,
+      "title": "The capsule: a suitcase of state",
+      "id": "-the-capsule-a-suitcase-of-state",
+      "level": 2
+    },
+    {
+      "t": 1185.6,
+      "title": "How it works: three rounds, each harder",
+      "id": "-how-it-works-three-rounds-each-harder",
+      "level": 2
+    },
+    {
+      "t": 1197.0,
+      "title": "Round 1: pause between two calls",
+      "id": "round-1-pause-between-two-calls",
+      "level": 3
+    },
+    {
+      "t": 1297.77,
+      "title": "Round 2: pause in the middle of a call",
+      "id": "round-2-pause-in-the-middle-of-a-call",
+      "level": 3
+    },
+    {
+      "t": 1598.85,
+      "title": "Round 3: a whole Python interpreter, paused mid-script",
+      "id": "round-3-a-whole-python-interpreter-paused-mid-script",
+      "level": 3
+    },
+    {
+      "t": 1713.88,
+      "title": "The control experiment: what CRIU does on the same moves",
+      "id": "-the-control-experiment-what-criu-does-on-the-same-moves",
+      "level": 2
+    },
+    {
+      "t": 2015.35,
+      "title": "If a Wasm capsule moves, why is CRIU still used?",
+      "id": "if-a-wasm-capsule-moves-why-is-criu-still-used",
+      "level": 3
+    },
+    {
+      "t": 2056.53,
+      "title": "When the program is talking to a server",
+      "id": "-when-the-program-is-talking-to-a-server",
+      "level": 2
+    },
+    {
+      "t": 2171.75,
+      "title": "The test server",
+      "id": "the-test-server",
+      "level": 3
+    },
+    {
+      "t": 2265.5,
+      "title": "A Wasm guest has no network, so I gave it three",
+      "id": "a-wasm-guest-has-no-network-so-i-gave-it-three",
+      "level": 3
+    },
+    {
+      "t": 2348.25,
+      "title": "The Wasm run: Intel to AMD",
+      "id": "the-wasm-run-intel-to-amd",
+      "level": 3
+    },
+    {
+      "t": 2461.6,
+      "title": "The CRIU runs",
+      "id": "the-criu-runs",
+      "level": 3
+    },
+    {
+      "t": 2634.87,
+      "title": "Can a floating IP keep the connection open across hosts?",
+      "id": "can-a-floating-ip-keep-the-connection-open-across-hosts",
+      "level": 3
+    },
+    {
+      "t": 3057.72,
+      "title": "What it shows",
+      "id": "what-it-shows",
+      "level": 3
+    },
+    {
+      "t": 3172.6,
+      "title": "Things that surprised me",
+      "id": "-things-that-surprised-me",
+      "level": 2
+    },
+    {
+      "t": 3351.12,
+      "title": "What was hard",
+      "id": "-what-was-hard",
+      "level": 2
+    },
+    {
+      "t": 3476.1,
+      "title": "The frontier: what is still open",
+      "id": "-the-frontier-what-is-still-open",
+      "level": 2
+    },
+    {
+      "t": 3594.02,
+      "title": "Try it yourself",
+      "id": "-try-it-yourself",
+      "level": 2
+    }
+  ]
+}

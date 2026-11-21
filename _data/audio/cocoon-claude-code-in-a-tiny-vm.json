@@ -1,10 +1,10 @@
 {
   "src": "/assets/audio/posts/cocoon-claude-code-in-a-tiny-vm.mp3",
   "words": "/assets/audio/posts/cocoon-claude-code-in-a-tiny-vm.words.json",
-  "duration": 1217.5,
-  "bytes": 7306070,
+  "duration": 1217.1,
+  "bytes": 7303190,
   "voice": "Kokoro bm_george",
-  "hash": "1590534da072fa6f",
+  "hash": "475539693d23c821",
   "chapters": [
     {
       "t": 0.0,
@@ -55,37 +55,37 @@
       "level": 2
     },
     {
-      "t": 814.53,
+      "t": 814.05,
       "title": "For the curious: what is under the hood",
       "id": "-for-the-curious-what-is-under-the-hood",
       "level": 2
     },
     {
-      "t": 831.1,
+      "t": 830.63,
       "title": "The whole system",
       "id": "️-the-whole-system",
       "level": 3
     },
     {
-      "t": 876.55,
+      "t": 876.08,
       "title": "Inside each part",
       "id": "-inside-each-part",
       "level": 3
     },
     {
-      "t": 944.9,
+      "t": 944.43,
       "title": "How it boots, and what keeps it small",
       "id": "-how-it-boots-and-what-keeps-it-small",
       "level": 3
     },
     {
-      "t": 1022.9,
+      "t": 1022.43,
       "title": "What it does not do",
       "id": "️-what-it-does-not-do",
       "level": 2
     },
     {
-      "t": 1144.35,
+      "t": 1143.88,
       "title": "Wrapping up",
       "id": "-wrapping-up",
       "level": 2
