@@ -806,7 +806,7 @@ My counter only pauses where I put a call to `ckpt.checkpoint()`. Real systems w
 
 **GPUs, Go and real hardware.** I did not try a GPU, a Go program compiled to WASI, or a real Arm or RISC-V board.
 
-Others work on the same questions:
+A lot is happening in this space. Frontier research and applied labs are both pushing hard on moving running software between machines and CPU types, and I am excited to see where it goes. Here are some of the others working on the same questions:
 
 | Who | What |
 | --- | --- |
