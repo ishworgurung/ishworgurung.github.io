@@ -1,10 +1,10 @@
 {
   "src": "/assets/audio/posts/teleporting-a-running-counter-across-cpus.mp3",
   "words": "/assets/audio/posts/teleporting-a-running-counter-across-cpus.words.json",
-  "duration": 3681.0,
-  "bytes": 22086667,
+  "duration": 3694.2,
+  "bytes": 22166299,
   "voice": "Kokoro bm_george",
-  "hash": "4643b07e76c73ae6",
+  "hash": "16ae882ee41abd05",
   "chapters": [
     {
       "t": 0.0,
@@ -139,7 +139,7 @@
       "level": 2
     },
     {
-      "t": 3594.02,
+      "t": 3607.27,
       "title": "Try it yourself",
       "id": "-try-it-yourself",
       "level": 2
