@@ -144,3 +144,36 @@ tmpfiles	temp files
 uj	micro joules
 vmentry	V M entry
 TOCTOU	tock-too
+
+# --- Book launch and teleport posts (kept to rules that leave other posts' spoken text unchanged)
+leanpub.com/microvm-book	lean pub dot com slash microvm book
+github.com/ishworgurung/microvm-book-source	github dot com slash ishworgurung slash microvm book source
+microvm-book-source	micro V M book source
+Leanpub	Lean pub
+.wasm	dot wasm
+RISC-V	risk five
+AArch64	arch sixty-four
+rv64	R V sixty-four
+Wasm	wah-zum
+wasmtime	wah-zum time
+WASI	wah-zee
+wasi-sdk	wah-zee S D K
+CRIU	C R I U
+Asyncify	ay-sink-ee-fy
+glibc	G lib C
+musl	muscle
+IFUNC	eye func
+PKRU	P K R U
+YMM	Y M M
+AVX2	A V X two
+AVX-512	A V X five twelve
+AVX	A V X
+SSE2	S S E two
+XCR0	X C R zero
+SIGILL	sig ill
+NaN	nan
+CPython	C Python
+SHA512SUMS	Saah-five-twelve-sums
+SHA-256	Saah two fifty-six
+ARP	A R P
+VIP	V I P
