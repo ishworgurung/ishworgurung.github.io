@@ -1,7 +1,7 @@
 ---
 title: "My book, microVMs from Scratch, is out"
 audio: true
-description: "microVMs from Scratch: KVM, virtio and Firecracker in Rust is now on Leanpub. Why I wrote it, what is in it, and how I plan to keep it up to date as a live edition."
+description: "microVMs from Scratch: KVM, virtio and Firecracker in Rust is now on Leanpub and Gumroad. Why I wrote it, what is in it, and how I plan to keep it up to date as a live edition."
 og_image: /assets/img/posts/2026-11-21-microvm-book-banner.png
 ---
 
@@ -9,7 +9,7 @@ og_image: /assets/img/posts/2026-11-21-microvm-book-banner.png
   <img src="/assets/img/posts/2026-11-21-microvm-book-banner.png" width="1200" height="630" alt="Hand-drawn banner on dotted notebook paper: microVMs from Scratch. KVM, virtio and Firecracker, in Rust. Build a tiny virtual machine. Boot Linux in it. The book's real cover, a red title band over an exploded stack of layers from host hardware up to the guest program, taped to the page, with a pink sticky note reading out now and a yellow one reading free sample, free updates.">
 </figure>
 
-My book is out! 🎉 It is called **[microVMs from Scratch: KVM, virtio and Firecracker in Rust](https://leanpub.com/microvm-book)**, and you can get it on Leanpub today.
+My book is out! 🎉 It is called **[microVMs from Scratch: KVM, virtio and Firecracker in Rust](https://leanpub.com/microvm-book)**, and you can get it on Leanpub or [Gumroad](https://ishworgurung.gumroad.com/l/microvm-book) today.
 
 If you have ever called an AWS Lambda function, a tiny virtual machine started, ran your code and was thrown away. That small machine is a *microVM*. The book is about how one works, and you learn it the slow, honest way: by building one.
 
@@ -60,8 +60,9 @@ This is the second edition, from November 2026. It is a fast-iterated cut of the
 ## 📚 Where to go next
 
 - 📖 **The book:** [leanpub.com/microvm-book](https://leanpub.com/microvm-book). There is a **free sample** on the page, so you can try the style before you buy, and Leanpub offers a 60-day money-back guarantee.
+- 🛒 **Also on Gumroad:** [ishworgurung.gumroad.com/l/microvm-book](https://ishworgurung.gumroad.com/l/microvm-book), if you prefer to buy there.
 - 💻 **The code:** [github.com/ishworgurung/microvm-book-source](https://github.com/ishworgurung/microvm-book-source).
 
 Thank you for reading, and if you build a microVM of your own, I would love to hear how it went.
 
-> Point-in-time (21 November 2026): second edition, as listed on Leanpub today. The price, the formats and Leanpub's terms are theirs and can change, so check the book's page for the current details.
+> Point-in-time (21 November 2026): second edition, as listed on Leanpub and Gumroad today. The price, the formats and each store's terms are theirs and can change, so check the book's page for the current details.
