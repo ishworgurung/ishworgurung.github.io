@@ -1,10 +1,10 @@
 {
   "src": "/assets/audio/posts/microvms-from-scratch-is-out.mp3",
   "words": "/assets/audio/posts/microvms-from-scratch-is-out.words.json",
-  "duration": 311.9,
-  "bytes": 1871929,
+  "duration": 321.1,
+  "bytes": 1927513,
   "voice": "Kokoro bm_george",
-  "hash": "ae4f0f65bae90c05",
+  "hash": "73b4f17ae2d191d0",
   "chapters": [
     {
       "t": 0.0,
@@ -13,31 +13,31 @@
       "level": 2
     },
     {
-      "t": 34.9,
+      "t": 35.7,
       "title": "Why I wrote it",
       "id": "-why-i-wrote-it",
       "level": 2
     },
     {
-      "t": 76.9,
+      "t": 77.7,
       "title": "What is in it",
       "id": "-what-is-in-it",
       "level": 2
     },
     {
-      "t": 175.0,
+      "t": 175.8,
       "title": "The code is open",
       "id": "-the-code-is-open",
       "level": 2
     },
     {
-      "t": 207.7,
+      "t": 208.5,
       "title": "A live edition",
       "id": "-a-live-edition",
       "level": 2
     },
     {
-      "t": 268.67,
+      "t": 269.47,
       "title": "Where to go next",
       "id": "-where-to-go-next",
       "level": 2
